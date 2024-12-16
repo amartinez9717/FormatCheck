@@ -100,9 +100,9 @@ import json
 with open('bandit_output.json', 'r') as f:
     results = json.load(f).get('results', [])
     for issue in results:
-        print(f\"File: {issue['filename']}, Line: {issue['line_number']}\")
-        print(f\"  Issue: {issue['issue_text']}\")
-        print(f\"  Severity: {issue['issue_severity']} ({issue['issue_confidence']})\")
+        print(f'File: {issue['filename']}, Line: {issue['line_number']}')
+        print(f'  Issue: {issue['issue_text']}')
+        print(f'  Severity: {issue['issue_severity']} ({issue['issue_confidence']})')
 " >> feedback.md || true
           echo "\`\`\`" >> feedback.md
 
