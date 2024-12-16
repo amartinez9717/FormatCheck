@@ -52,13 +52,35 @@ jobs:
         run: |
           bandit -r . -f json -o bandit_output.json || true
 
-      # Step 8: Run Snyk for Dependency Security Scanning
+      # Step 8: Process Bandit Output
+      - name: Process Bandit Feedback
+        run: |
+          python - <<EOF
+import json
+feedback = []
+try:
+    with open('bandit_output.json', 'r') as f:
+        results = json.load(f).get('results', [])
+        for issue in results:
+            feedback.append(
+                f"File: {issue['filename']}, Line: {issue['line_number']}\n"
+                f"  Issue: {issue['issue_text']}\n"
+                f"  Severity: {issue['issue_severity']} ({issue['issue_confidence']})\n"
+            )
+except Exception as e:
+    feedback.append(f"Error processing Bandit results: {str(e)}")
+
+with open('bandit_feedback.txt', 'w') as f:
+    f.write('\n'.join(feedback))
+EOF
+
+      # Step 9: Run Snyk for Dependency Security Scanning
       - name: Run Snyk
         run: snyk test --json > snyk_output.json || true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # Step 9: Combine Feedback into a Single Comment
+      # Step 10: Combine Feedback into a Single Comment
       - name: Combine Feedback
         run: |
           echo "## Code Review Feedback" > feedback.md
@@ -92,18 +114,10 @@ jobs:
           cat radon_maintainability_output.txt >> feedback.md
           echo "\`\`\`" >> feedback.md
 
-          # Add Bandit security analysis feedback
+          # Add Bandit feedback
           echo "\n### 4. Bandit Feedback (Security Analysis)" >> feedback.md
           echo "\`\`\`plaintext" >> feedback.md
-          python -c "
-import json
-with open('bandit_output.json', 'r') as f:
-    results = json.load(f).get('results', [])
-    for issue in results:
-        print(f'File: {issue['filename']}, Line: {issue['line_number']}')
-        print(f'  Issue: {issue['issue_text']}')
-        print(f'  Severity: {issue['issue_severity']} ({issue['issue_confidence']})')
-" >> feedback.md || true
+          cat bandit_feedback.txt >> feedback.md
           echo "\`\`\`" >> feedback.md
 
           # Add Snyk feedback
@@ -112,7 +126,7 @@ with open('bandit_output.json', 'r') as f:
           jq '.vulnerabilities[] | "\(.package)@\(.version): \(.title) (Severity: \(.severity))"' snyk_output.json >> feedback.md || echo "No vulnerabilities found." >> feedback.md
           echo "\`\`\`" >> feedback.md
 
-      # Step 10: Post Feedback as a Pull Request Comment
+      # Step 11: Post Feedback as a Pull Request Comment
       - name: Post Feedback
         uses: actions/github-script@v6
         with:
