@@ -52,11 +52,12 @@ jobs:
         run: |
           bandit -r . -f json -o bandit_output.json || true
 
-      # Step 8: Process Bandit Output
+      # Step 8: Process Bandit Feedback
       - name: Process Bandit Feedback
         run: |
-          python - <<EOF
+          python <<EOF
 import json
+
 feedback = []
 try:
     with open('bandit_output.json', 'r') as f:
@@ -64,8 +65,8 @@ try:
         for issue in results:
             feedback.append(
                 f"File: {issue['filename']}, Line: {issue['line_number']}\n"
-                f"  Issue: {issue['issue_text']}\n"
-                f"  Severity: {issue['issue_severity']} ({issue['issue_confidence']})\n"
+                f"Issue: {issue['issue_text']}\n"
+                f"Severity: {issue['issue_severity']} ({issue['issue_confidence']})\n"
             )
 except Exception as e:
     feedback.append(f"Error processing Bandit results: {str(e)}")
