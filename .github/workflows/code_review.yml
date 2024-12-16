@@ -36,15 +36,27 @@ jobs:
     - name: Set up GitHub CLI
       run: sudo apt-get install -y gh
 
-    - name: Post Feedback
-      run: |
-        echo "### Static Analysis Feedback:" > comment_body.txt
-        echo '```plaintext' >> comment_body.txt
-        cat pylint_output.txt >> comment_body.txt
-        echo '```' >> comment_body.txt
-        echo "### Cyclomatic Complexity (Radon) Feedback:" >> comment_body.txt
-        echo '```plaintext' >> comment_body.txt
-        cat radon_output.txt >> comment_body.txt
-        echo '```' >> comment_body.txt
+    - name: Post Feedback with GitHub Script
+  uses: actions/github-script@v6
+  with:
+    script: |
+      const fs = require('fs');
+      const pylintFeedback = fs.readFileSync('pylint_output.txt', 'utf8');
+      const radonFeedback = fs.readFileSync('radon_output.txt', 'utf8');
+      github.rest.issues.createComment({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        issue_number: context.payload.pull_request.number,
+        body: `
+        ### Static Analysis Feedback:
+        \`\`\`plaintext
+        ${pylintFeedback}
+        \`\`\`
 
-        gh pr comment ${{ github.event.pull_request.number }} --body "$(cat comment_body.txt)"
+        ### Cyclomatic Complexity (Radon) Feedback:
+        \`\`\`plaintext
+        ${radonFeedback}
+        \`\`\`
+        `
+      });
+
