@@ -16,3 +16,4 @@ def hardcoded_credentials():
     username = "admin"  # Hardcoded username
     password = "123456"  # Hardcoded password
     print("Credentials used")
+    print("Credentials used")
