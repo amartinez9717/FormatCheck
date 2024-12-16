@@ -9,7 +9,7 @@ on:
     branches:
       - main
     paths:
-      - '**/*.py'    
+      - '**/*.py'
 
 jobs:
   code-review:
@@ -31,50 +31,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install pylint flake8 radon
 
-      # Step 4: Run Static Analysis
-      - name: Run Static Analysis
+      # Step 4: Run Static Analysis (Pylint)
+      - name: Run Pylint Analysis
         run: |
-          pylint **/*.py > pylint_output.txt || true
-          flake8 **/*.py > flake8_output.txt || true
+          pylint **/*.py --output-format=json > pylint_output.json || true
 
-      # Step 5: Run Cyclomatic Complexity Analysis
+      # Step 5: Run Static Analysis (Flake8)
+      - name: Run Flake8 Analysis
+        run: |
+          flake8 **/*.py --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
+
+      # Step 6: Run Cyclomatic Complexity Analysis
       - name: Run Cyclomatic Complexity Analysis
         run: |
-          radon cc **/*.py -s -n C > radon_output.txt || true
-
-      # Step 6: Run AST-based Code Smell Analysis
-      - name: Run Code Smell Analysis
-        run: |
-          python - <<EOF > ast_analysis_output.txt
-          import ast
-          import os
-
-          def find_code_smells(file_path):
-              feedback = []
-              with open(file_path, 'r') as f:
-                  code = f.read()
-              try:
-                  tree = ast.parse(code)
-                  for node in ast.walk(tree):
-                      if isinstance(node, ast.FunctionDef) and len(node.body) > 50:  # Large function
-                          feedback.append(f"Function '{node.name}' is too long ({len(node.body)} lines). Consider breaking it into smaller, modular functions.")
-                      if isinstance(node, ast.ClassDef) and len(node.body) > 100:  # Large class
-                          feedback.append(f"Class '{node.name}' is too large ({len(node.body)} methods). Consider refactoring into smaller classes.")
-              except Exception as e:
-                  feedback.append(f"Error parsing {file_path}: {str(e)}")
-              return feedback
-
-          feedback = []
-          for root, _, files in os.walk("."):
-              for file in files:
-                  if file.endswith(".py"):
-                      feedback.extend(find_code_smells(os.path.join(root, file)))
-
-          if feedback:
-              print("Code Smells Detected:")
-              for line in feedback:
-                  print(line)
-          EOF
+          radon cc **/*.py -s -j > radon_output.json || true
 
       # Step 7: Generate Feedback
       - name: Generate Feedback
@@ -82,7 +52,7 @@ jobs:
           python - <<EOF > feedback.md
           import json
 
-          # Feedback template
+          # Initialize feedback
           feedback = "## Code Review Feedback\\n"
 
           # Pylint feedback
@@ -91,11 +61,16 @@ jobs:
               with open('pylint_output.json', 'r') as f:
                   pylint_issues = json.load(f)
                   if pylint_issues:
-                      feedback += "\\nDetected issues:\\n"
                       for issue in pylint_issues:
-                          feedback += f"- {issue['message']} (File: {issue['path']}, Line: {issue['line']}, Column: {issue['column']})\\n"
+                          feedback += (
+                              f"- **{issue['path']}** (Line {issue['line']}, Column {issue['column']}): "
+                              f"{issue['message']} [{issue['symbol']}]\n"
+                          )
+                      feedback += "\n**Suggestions:**\n"
+                      feedback += "- Address the reported issues by following PEP-8 and Python coding guidelines.\n"
+                      feedback += "- Simplify complex functions or refactor where needed.\n"
                   else:
-                      feedback += "\\nNo issues detected.\\n"
+                      feedback += "No issues detected.\n"
           except Exception as e:
               feedback += f"Error processing Pylint results: {str(e)}\\n"
 
@@ -105,11 +80,13 @@ jobs:
               with open('flake8_output.txt', 'r') as f:
                   flake8_issues = f.readlines()
                   if flake8_issues:
-                      feedback += "\\nDetected issues:\\n"
                       for issue in flake8_issues:
                           feedback += f"- {issue.strip()}\\n"
+                      feedback += "\n**Suggestions:**\n"
+                      feedback += "- Fix unused imports, indentation errors, and other PEP-8 violations.\n"
+                      feedback += "- Ensure consistent formatting and remove unnecessary whitespace.\n"
                   else:
-                      feedback += "\\nNo issues detected.\\n"
+                      feedback += "No issues detected.\n"
           except Exception as e:
               feedback += f"Error processing Flake8 results: {str(e)}\\n"
 
@@ -120,11 +97,16 @@ jobs:
                   radon_issues = json.load(f)
                   for file, issues in radon_issues.items():
                       for issue in issues:
-                          feedback += f"- {issue['name']} in {file} has complexity {issue['complexity']} (Line: {issue['lineno']})\\n"
+                          feedback += (
+                              f"- **{file}**: Function `{issue['name']}` at line {issue['lineno']} has complexity {issue['complexity']}.\n"
+                          )
+                      feedback += "\n**Suggestions:**\n"
+                      feedback += "- Refactor functions or methods with high complexity into smaller, reusable units.\n"
+                      feedback += "- Simplify nested loops or conditionals.\n"
           except Exception as e:
               feedback += f"Error processing Radon results: {str(e)}\\n"
 
-          # Save feedback to a file
+          # Save feedback to file
           with open('feedback.md', 'w') as f:
               f.write(feedback)
           EOF
