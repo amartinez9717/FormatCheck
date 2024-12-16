@@ -98,7 +98,7 @@ jobs:
           python -c "
 import json
 with open('bandit_output.json', 'r') as f:
-    results = json.load(f)['results']
+    results = json.load(f).get('results', [])
     for issue in results:
         print(f\"File: {issue['filename']}, Line: {issue['line_number']}\")
         print(f\"  Issue: {issue['issue_text']}\")
