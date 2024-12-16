@@ -27,51 +27,27 @@ jobs:
 
       # Step 3: Install dependencies
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pylint flake8 radon bandit snyk
+        run: python -m pip install --upgrade pip && pip install pylint flake8 radon bandit snyk
 
       # Step 4: Run Pylint for Static Analysis
       - name: Run Pylint
-        run: |
-          pylint **/*.py --output-format=parseable > pylint_output.txt || true
+        run: pylint **/*.py --output-format=parseable > pylint_output.txt || true
 
       # Step 5: Run Flake8 for Style Checks
       - name: Run Flake8
-        run: |
-          flake8 **/*.py --format=default --output-file=flake8_output.txt || true
+        run: flake8 **/*.py --format=default --output-file=flake8_output.txt || true
 
       # Step 6: Run Radon for Complexity and Maintainability
       - name: Run Radon
-        run: |
-          radon cc **/*.py -s -n C > radon_complexity_output.txt || true
-          radon mi **/*.py > radon_maintainability_output.txt || true
+        run: radon cc **/*.py -s -n C > radon_complexity_output.txt || true && radon mi **/*.py > radon_maintainability_output.txt || true
 
       # Step 7: Run Bandit for Security Analysis
       - name: Run Bandit
-        run: |
-          bandit -r . -f json -o bandit_output.json || true
+        run: bandit -r . -f json -o bandit_output.json || true
 
       # Step 8: Process Bandit Feedback
       - name: Process Bandit Feedback
-        run: |
-          python <<EOF
-import json
-
-try:
-    with open('bandit_output.json', 'r') as f:
-        results = json.load(f).get('results', [])
-        feedback = []
-        for issue in results:
-            feedback.append(f"File: {issue['filename']}, Line: {issue['line_number']}\n"
-                            f"Issue: {issue['issue_text']}\n"
-                            f"Severity: {issue['issue_severity']} ({issue['issue_confidence']})\n")
-    with open('bandit_feedback.txt', 'w') as output:
-        output.write('\n'.join(feedback))
-except Exception as e:
-    with open('bandit_feedback.txt', 'w') as output:
-        output.write(f"Error processing Bandit output: {str(e)}\n")
-EOF
+        run: python -c "import json; feedback=[]; results=json.load(open('bandit_output.json', 'r')).get('results', []); [feedback.append(f\"File: {issue['filename']}, Line: {issue['line_number']}\nIssue: {issue['issue_text']}\nSeverity: {issue['issue_severity']} ({issue['issue_confidence']})\") for issue in results]; open('bandit_feedback.txt', 'w').write('\n'.join(feedback))"
 
       # Step 9: Run Snyk for Dependency Security Scanning
       - name: Run Snyk
@@ -81,48 +57,37 @@ EOF
 
       # Step 10: Combine Feedback into a Single Comment
       - name: Combine Feedback
-        run: |
-          echo "## Code Review Feedback" > feedback.md
-
-          # Add Pylint feedback
-          echo "\n### 1. Pylint Feedback (Static Analysis)" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat pylint_output.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-          echo "**Suggestions:**" >> feedback.md
-          echo "- Fix Pylint-reported issues, including unused imports, missing docstrings, and logical errors." >> feedback.md
-
-          # Add Flake8 feedback
-          echo "\n### 2. Flake8 Feedback (Style Checks)" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat flake8_output.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-          echo "**Suggestions:**" >> feedback.md
-          echo "- Address coding style violations to align with PEP-8." >> feedback.md
-
-          # Add Radon complexity feedback
-          echo "\n### 3. Radon Feedback (Complexity Analysis)" >> feedback.md
-          echo "**Cyclomatic Complexity:**" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat radon_complexity_output.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-          echo "**Suggestions:**" >> feedback.md
-          echo "- Refactor methods or functions with high complexity into smaller, manageable units." >> feedback.md
-          echo "**Maintainability Index:**" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat radon_maintainability_output.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-
-          # Add Bandit feedback
-          echo "\n### 4. Bandit Feedback (Security Analysis)" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat bandit_feedback.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-
-          # Add Snyk feedback
-          echo "\n### 5. Snyk Feedback (Dependency Security)" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          jq '.vulnerabilities[] | "\(.package)@\(.version): \(.title) (Severity: \(.severity))"' snyk_output.json >> feedback.md || echo "No vulnerabilities found." >> feedback.md
+        run: echo "## Code Review Feedback" > feedback.md && \
+          echo "\n### 1. Pylint Feedback (Static Analysis)" >> feedback.md && \
+          echo "\`\`\`plaintext" >> feedback.md && \
+          cat pylint_output.txt >> feedback.md && \
+          echo "\`\`\`" >> feedback.md && \
+          echo "**Suggestions:**" >> feedback.md && \
+          echo "- Fix Pylint-reported issues, including unused imports, missing docstrings, and logical errors." >> feedback.md && \
+          echo "\n### 2. Flake8 Feedback (Style Checks)" >> feedback.md && \
+          echo "\`\`\`plaintext" >> feedback.md && \
+          cat flake8_output.txt >> feedback.md && \
+          echo "\`\`\`" >> feedback.md && \
+          echo "**Suggestions:**" >> feedback.md && \
+          echo "- Address coding style violations to align with PEP-8." >> feedback.md && \
+          echo "\n### 3. Radon Feedback (Complexity Analysis)" >> feedback.md && \
+          echo "**Cyclomatic Complexity:**" >> feedback.md && \
+          echo "\`\`\`plaintext" >> feedback.md && \
+          cat radon_complexity_output.txt >> feedback.md && \
+          echo "\`\`\`" >> feedback.md && \
+          echo "**Suggestions:**" >> feedback.md && \
+          echo "- Refactor methods or functions with high complexity into smaller, manageable units." >> feedback.md && \
+          echo "**Maintainability Index:**" >> feedback.md && \
+          echo "\`\`\`plaintext" >> feedback.md && \
+          cat radon_maintainability_output.txt >> feedback.md && \
+          echo "\`\`\`" >> feedback.md && \
+          echo "\n### 4. Bandit Feedback (Security Analysis)" >> feedback.md && \
+          echo "\`\`\`plaintext" >> feedback.md && \
+          cat bandit_feedback.txt >> feedback.md && \
+          echo "\`\`\`" >> feedback.md && \
+          echo "\n### 5. Snyk Feedback (Dependency Security)" >> feedback.md && \
+          echo "\`\`\`plaintext" >> feedback.md && \
+          jq '.vulnerabilities[] | "\(.package)@\(.version): \(.title) (Severity: \(.severity))"' snyk_output.json >> feedback.md || echo "No vulnerabilities found." >> feedback.md && \
           echo "\`\`\`" >> feedback.md
 
       # Step 11: Post Feedback as a Pull Request Comment
