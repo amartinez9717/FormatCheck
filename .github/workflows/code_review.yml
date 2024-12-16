@@ -76,34 +76,58 @@ jobs:
                   print(line)
           EOF
 
-      # Step 7: Combine Feedback into a Single Comment
-      - name: Combine Feedback
+      # Step 7: Generate Feedback
+      - name: Generate Feedback
         run: |
-          echo "## Code Review Feedback" > feedback.md
-          
-          echo "### 1. Static Analysis Feedback" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat pylint_output.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-          echo "**Suggestions:**" >> feedback.md
-          echo "- Fix the reported coding standard violations." >> feedback.md
-          echo "- Add appropriate docstrings to modules, classes, and functions." >> feedback.md
+          python - <<EOF > feedback.md
+          import json
 
-          echo "\n### 2. Cyclomatic Complexity Feedback" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat radon_output.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-          echo "**Suggestions:**" >> feedback.md
-          echo "- Refactor methods or functions with high complexity." >> feedback.md
-          echo "- Break down large methods into smaller, more manageable units." >> feedback.md
+          # Feedback template
+          feedback = "## Code Review Feedback\\n"
 
-          echo "\n### 3. Code Smell Feedback" >> feedback.md
-          echo "\`\`\`plaintext" >> feedback.md
-          cat ast_analysis_output.txt >> feedback.md
-          echo "\`\`\`" >> feedback.md
-          echo "**Suggestions:**" >> feedback.md
-          echo "- Split large functions into smaller, reusable ones." >> feedback.md
-          echo "- Refactor large classes into multiple smaller classes where possible." >> feedback.md
+          # Pylint feedback
+          feedback += "\\n### 1. Static Analysis Feedback (Pylint)\\n"
+          try:
+              with open('pylint_output.json', 'r') as f:
+                  pylint_issues = json.load(f)
+                  if pylint_issues:
+                      feedback += "\\nDetected issues:\\n"
+                      for issue in pylint_issues:
+                          feedback += f"- {issue['message']} (File: {issue['path']}, Line: {issue['line']}, Column: {issue['column']})\\n"
+                  else:
+                      feedback += "\\nNo issues detected.\\n"
+          except Exception as e:
+              feedback += f"Error processing Pylint results: {str(e)}\\n"
+
+          # Flake8 feedback
+          feedback += "\\n### 2. Static Analysis Feedback (Flake8)\\n"
+          try:
+              with open('flake8_output.txt', 'r') as f:
+                  flake8_issues = f.readlines()
+                  if flake8_issues:
+                      feedback += "\\nDetected issues:\\n"
+                      for issue in flake8_issues:
+                          feedback += f"- {issue.strip()}\\n"
+                  else:
+                      feedback += "\\nNo issues detected.\\n"
+          except Exception as e:
+              feedback += f"Error processing Flake8 results: {str(e)}\\n"
+
+          # Radon feedback
+          feedback += "\\n### 3. Cyclomatic Complexity Feedback\\n"
+          try:
+              with open('radon_output.json', 'r') as f:
+                  radon_issues = json.load(f)
+                  for file, issues in radon_issues.items():
+                      for issue in issues:
+                          feedback += f"- {issue['name']} in {file} has complexity {issue['complexity']} (Line: {issue['lineno']})\\n"
+          except Exception as e:
+              feedback += f"Error processing Radon results: {str(e)}\\n"
+
+          # Save feedback to a file
+          with open('feedback.md', 'w') as f:
+              f.write(feedback)
+          EOF
 
       # Step 8: Post Feedback as a Pull Request Comment
       - name: Post Feedback
