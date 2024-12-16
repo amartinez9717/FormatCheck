@@ -58,21 +58,19 @@ jobs:
           python <<EOF
 import json
 
-feedback = []
 try:
     with open('bandit_output.json', 'r') as f:
         results = json.load(f).get('results', [])
+        feedback = []
         for issue in results:
-            feedback.append(
-                f"File: {issue['filename']}, Line: {issue['line_number']}\n"
-                f"Issue: {issue['issue_text']}\n"
-                f"Severity: {issue['issue_severity']} ({issue['issue_confidence']})\n"
-            )
+            feedback.append(f"File: {issue['filename']}, Line: {issue['line_number']}\n"
+                            f"Issue: {issue['issue_text']}\n"
+                            f"Severity: {issue['issue_severity']} ({issue['issue_confidence']})\n")
+    with open('bandit_feedback.txt', 'w') as output:
+        output.write('\n'.join(feedback))
 except Exception as e:
-    feedback.append(f"Error processing Bandit results: {str(e)}")
-
-with open('bandit_feedback.txt', 'w') as f:
-    f.write('\n'.join(feedback))
+    with open('bandit_feedback.txt', 'w') as output:
+        output.write(f"Error processing Bandit output: {str(e)}\n")
 EOF
 
       # Step 9: Run Snyk for Dependency Security Scanning
