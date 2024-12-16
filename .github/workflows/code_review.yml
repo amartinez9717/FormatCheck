@@ -1,109 +1,175 @@
 name: Code Review Assistant
 
 permissions:
-  pull-requests: write
-  issues: write
+pull-requests: write
+issues: write
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
+pull_request:
+branches:
+- main
+paths:
+      - '**/*.py'    
       - '**/*.py'
 
 jobs:
-  code-review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+code-review:
+runs-on: ubuntu-latest
+steps:
+# Step 1: Checkout code
+- name: Checkout code
+uses: actions/checkout@v3
 
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
+# Step 2: Set up Python
+- name: Set up Python 3.x
+uses: actions/setup-python@v4
+with:
+python-version: '3.8'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip &&
-          pip install pylint flake8 radon bandit snyk
+# Step 3: Install dependencies
+- name: Install dependencies
+run: |
+         python -m pip install --upgrade pip
+         pip install pylint flake8 radon
 
-      - name: Run Pylint
-        run: pylint **/*.py --output-format=parseable > pylint_output.txt || true
+      # Step 4: Run Static Analysis
+      - name: Run Static Analysis
+      # Step 4: Run Static Analysis (Pylint)
+      - name: Run Pylint Analysis
+run: |
+          pylint **/*.py > pylint_output.txt || true
+          flake8 **/*.py > flake8_output.txt || true
+          pylint **/*.py --output-format=json > pylint_output.json || true
 
-      - name: Run Flake8
-        run: flake8 **/*.py --format=default --output-file=flake8_output.txt || true
+      # Step 5: Run Cyclomatic Complexity Analysis
+      - name: Run Cyclomatic Complexity Analysis
+      # Step 5: Run Static Analysis (Flake8)
+      - name: Run Flake8 Analysis
+run: |
+          radon cc **/*.py -s -n C > radon_output.txt || true
+          flake8 **/*.py --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
 
-      - name: Run Radon
-        run: |
-          radon cc **/*.py -s -n C > radon_complexity_output.txt || true &&
-          radon mi **/*.py > radon_maintainability_output.txt || true
+      # Step 6: Run AST-based Code Smell Analysis
+      - name: Run Code Smell Analysis
+      # Step 6: Run Cyclomatic Complexity Analysis
+      - name: Run Cyclomatic Complexity Analysis
+run: |
+          python - <<EOF > ast_analysis_output.txt
+          import ast
+          import os
 
-      - name: Run Bandit
-        run: bandit -r . -f json -o bandit_output.json || true
+          def find_code_smells(file_path):
+              feedback = []
+              with open(file_path, 'r') as f:
+                  code = f.read()
+              try:
+                  tree = ast.parse(code)
+                  for node in ast.walk(tree):
+                      if isinstance(node, ast.FunctionDef) and len(node.body) > 50:  # Large function
+                          feedback.append(f"Function '{node.name}' is too long ({len(node.body)} lines). Consider breaking it into smaller, modular functions.")
+                      if isinstance(node, ast.ClassDef) and len(node.body) > 100:  # Large class
+                          feedback.append(f"Class '{node.name}' is too large ({len(node.body)} methods). Consider refactoring into smaller classes.")
+              except Exception as e:
+                  feedback.append(f"Error parsing {file_path}: {str(e)}")
+              return feedback
 
-      - name: Process Bandit Feedback
-        run: |
-          python -c "
-import json
-feedback = []
-with open('bandit_output.json', 'r') as f:
-    results = json.load(f).get('results', [])
-    for issue in results:
-        feedback.append(f'File: {issue[\"filename\"]}, Line: {issue[\"line_number\"]}\\nIssue: {issue[\"issue_text\"]}\\nSeverity: {issue[\"issue_severity\"]} ({issue[\"issue_confidence\"]})')
-with open('bandit_feedback.txt', 'w') as f:
-    f.write('\\n'.join(feedback))
-          "
+          feedback = []
+          for root, _, files in os.walk("."):
+              for file in files:
+                  if file.endswith(".py"):
+                      feedback.extend(find_code_smells(os.path.join(root, file)))
 
-      - name: Run Snyk
-        run: snyk test --json > snyk_output.json || true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          if feedback:
+              print("Code Smells Detected:")
+              for line in feedback:
+                  print(line)
+          EOF
+          radon cc **/*.py -s -j > radon_output.json || true
 
-      - name: Combine Feedback
-        run: |
-          echo "## Code Review Feedback" > feedback.md &&
-          echo "\n### 1. Pylint Feedback (Static Analysis)" >> feedback.md &&
-          echo "\`\`\`plaintext" >> feedback.md &&
-          cat pylint_output.txt >> feedback.md &&
-          echo "\`\`\`" >> feedback.md &&
-          echo "**Suggestions:**" >> feedback.md &&
-          echo "- Fix Pylint-reported issues, including unused imports, missing docstrings, and logical errors." >> feedback.md &&
-          echo "\n### 2. Flake8 Feedback (Style Checks)" >> feedback.md &&
-          echo "\`\`\`plaintext" >> feedback.md &&
-          cat flake8_output.txt >> feedback.md &&
-          echo "\`\`\`" >> feedback.md &&
-          echo "**Suggestions:**" >> feedback.md &&
-          echo "- Address coding style violations to align with PEP-8." >> feedback.md &&
-          echo "\n### 3. Radon Feedback (Complexity Analysis)" >> feedback.md &&
-          echo "**Cyclomatic Complexity:**" >> feedback.md &&
-          echo "\`\`\`plaintext" >> feedback.md &&
-          cat radon_complexity_output.txt >> feedback.md &&
-          echo "\`\`\`" >> feedback.md &&
-          echo "**Suggestions:**" >> feedback.md &&
-          echo "- Refactor methods or functions with high complexity into smaller, manageable units." >> feedback.md &&
-          echo "**Maintainability Index:**" >> feedback.md &&
-          echo "\`\`\`plaintext" >> feedback.md &&
-          cat radon_maintainability_output.txt >> feedback.md &&
-          echo "\`\`\`" >> feedback.md &&
-          echo "\n### 4. Bandit Feedback (Security Analysis)" >> feedback.md &&
-          echo "\`\`\`plaintext" >> feedback.md &&
-          cat bandit_feedback.txt >> feedback.md &&
-          echo "\`\`\`" >> feedback.md &&
-          echo "\n### 5. Snyk Feedback (Dependency Security)" >> feedback.md &&
-          echo "\`\`\`plaintext" >> feedback.md &&
-          jq '.vulnerabilities[] | "\(.package)@\(.version): \(.title) (Severity: \(.severity))"' snyk_output.json >> feedback.md || echo "No vulnerabilities found." >> feedback.md &&
-          echo "\`\`\`" >> feedback.md
+     # Step 7: Generate Feedback
+- name: Generate Feedback
+run: |
+         python - <<EOF > feedback.md
+         import json
 
-      - name: Post Feedback
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const feedback = fs.readFileSync('feedback.md', 'utf8');
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: feedback
+          # Feedback template
+          # Initialize feedback
+         feedback = "## Code Review Feedback\\n"
+
+         # Pylint feedback
+         feedback += "\\n### 1. Static Analysis Feedback (Pylint)\\n"
+         try:
+             with open('pylint_output.json', 'r') as f:
+                 pylint_issues = json.load(f)
+                 if pylint_issues:
+                      feedback += "\\nDetected issues:\\n"
+                     for issue in pylint_issues:
+                          feedback += f"- {issue['message']} (File: {issue['path']}, Line: {issue['line']}, Column: {issue['column']})\\n"
+                          feedback += (
+                              f"- **{issue['path']}** (Line {issue['line']}, Column {issue['column']}): "
+                              f"{issue['message']} [{issue['symbol']}]\n"
+                          )
+                      feedback += "\n**Suggestions:**\n"
+                      feedback += "- Address the reported issues by following PEP-8 and Python coding guidelines.\n"
+                      feedback += "- Simplify complex functions or refactor where needed.\n"
+                 else:
+                      feedback += "\\nNo issues detected.\\n"
+                      feedback += "No issues detected.\n"
+         except Exception as e:
+             feedback += f"Error processing Pylint results: {str(e)}\\n"
+
+         # Flake8 feedback
+         feedback += "\\n### 2. Static Analysis Feedback (Flake8)\\n"
+         try:
+             with open('flake8_output.txt', 'r') as f:
+                 flake8_issues = f.readlines()
+                 if flake8_issues:
+                      feedback += "\\nDetected issues:\\n"
+                     for issue in flake8_issues:
+                         feedback += f"- {issue.strip()}\\n"
+                      feedback += "\n**Suggestions:**\n"
+                      feedback += "- Fix unused imports, indentation errors, and other PEP-8 violations.\n"
+                      feedback += "- Ensure consistent formatting and remove unnecessary whitespace.\n"
+                 else:
+                      feedback += "\\nNo issues detected.\\n"
+                      feedback += "No issues detected.\n"
+         except Exception as e:
+             feedback += f"Error processing Flake8 results: {str(e)}\\n"
+
+         # Radon feedback
+         feedback += "\\n### 3. Cyclomatic Complexity Feedback\\n"
+         try:
+             with open('radon_output.json', 'r') as f:
+                 radon_issues = json.load(f)
+                 for file, issues in radon_issues.items():
+                     for issue in issues:
+                          feedback += f"- {issue['name']} in {file} has complexity {issue['complexity']} (Line: {issue['lineno']})\\n"
+                          feedback += (
+                              f"- **{file}**: Function `{issue['name']}` at line {issue['lineno']} has complexity {issue['complexity']}.\n"
+                          )
+                      feedback += "\n**Suggestions:**\n"
+                      feedback += "- Refactor functions or methods with high complexity into smaller, reusable units.\n"
+                      feedback += "- Simplify nested loops or conditionals.\n"
+         except Exception as e:
+             feedback += f"Error processing Radon results: {str(e)}\\n"
+
+          # Save feedback to a file
+          # Save feedback to file
+         with open('feedback.md', 'w') as f:
+             f.write(feedback)
+         EOF
+
+     # Step 8: Post Feedback as a Pull Request Comment
+- name: Post Feedback
+uses: actions/github-script@v6
+with:
+script: |
+           const fs = require('fs');
+           const feedback = fs.readFileSync('feedback.md', 'utf8');
+           github.rest.issues.createComment({
+             owner: context.repo.owner,
+             repo: context.repo.repo,
+             issue_number: context.payload.pull_request.number,
+             body: feedback
+            });
             });
