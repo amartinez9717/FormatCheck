@@ -25,40 +25,45 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pylint flake8 radon bandit docformatter requests openai jq
+          pip install pylint flake8 radon docformatter requests jq
 
-      # Step 3: Static Analysis (Pylint)
+      # Step 3: Install Snyk CLI
+      - name: Install Snyk CLI
+        run: |
+          npm install -g snyk
+
+      # Step 4: Static Analysis (Pylint)
       - name: Run Pylint for Code Quality
         run: |
           find . -name "*.py" | xargs pylint --output-format=json > pylint_output.json || true
 
-      # Step 4: Code Style Analysis (Flake8)
+      # Step 5: Code Style Analysis (Flake8)
       - name: Run Flake8 for Style Issues
         run: |
           flake8 . --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
 
-      # Step 5: Cyclomatic Complexity Check (Radon)
+      # Step 6: Cyclomatic Complexity Check (Radon)
       - name: Check Cyclomatic Complexity
         run: |
           radon cc . -s -j > radon_output.json || true
 
-      # Step 6: Documentation Check (Docformatter)
+      # Step 7: Documentation Check (Docformatter)
       - name: Check Documentation Consistency
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 7: DeepCode Analysis via Docker
+      # Step 8: DeepCode Analysis via Docker
       - name: Run DeepCode in Docker for Code Smells & Performance Issues
         run: |
           docker run --rm -v $(pwd):/project deepcode/cli analyze /project --output json > deepcode_output.json || true
 
-      # Step 8: Snyk Security Analysis
+      # Step 9: Snyk Security Analysis
       - name: Run Snyk for Security Issues
         run: |
           snyk auth ${{ secrets.SNYK_TOKEN }}  # Authenticate using the SNYK_TOKEN secret
           snyk test --all-projects --json > snyk_output.json || true
 
-      # Step 9: Combine All Feedback into One Report
+      # Step 10: Combine All Feedback into One Report
       - name: Combine Feedback Report
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
@@ -87,14 +92,14 @@ jobs:
           echo "### 6. Snyk Security Analysis" >> combined_feedback.md
           jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md || echo "No Snyk issues found." >> combined_feedback.md
 
-      # Step 10: Upload Combined Report
+      # Step 11: Upload Combined Report
       - name: Upload Feedback Report
         uses: actions/upload-artifact@v3
         with:
           name: combined-feedback
           path: combined_feedback.md
 
-      # Step 11: Post Feedback to Pull Request
+      # Step 12: Post Feedback to Pull Request
       - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
