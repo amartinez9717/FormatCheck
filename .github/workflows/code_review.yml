@@ -54,7 +54,7 @@ jobs:
 
       # Step 10: Snyk Security Analysis
       - name: Run Snyk Security Analysis
-        uses: snyk/actions/snyk-action@v1
+        uses: snyk/actions/snyk-action@v1.850.0
         with:
           snyk_token: ${{ secrets.SNYK_TOKEN }}
           command: test
