@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pylint flake8 radon
+          pip install pylint flake8 radon bandit snyk
 
       # Step 4: Run Static Analysis (Pylint)
       - name: Run Pylint Analysis
@@ -41,12 +41,24 @@ jobs:
         run: |
           flake8 **/*.py --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
 
-      # Step 6: Run Cyclomatic Complexity Analysis
+      # Step 6: Measure Cyclomatic Complexity and Maintainability
       - name: Run Cyclomatic Complexity Analysis
         run: |
-          radon cc **/*.py -s -j > radon_output.json || true
+          radon cc **/*.py -s -j > radon_complexity_output.json || true
+          radon mi **/*.py -j > radon_maintainability_output.json || true
 
-      # Step 7: Generate Feedback
+      # Step 7: Run Bandit Security Analysis
+      - name: Run Bandit Security Analysis
+        run: |
+          bandit -r . -f json -o bandit_output.json || true
+
+      # Step 8: Run Snyk Security Scan
+      - name: Run Snyk Dependency Scan
+        run: snyk test --json > snyk_output.json || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Step 9: Generate Feedback
       - name: Generate Feedback
         run: |
           python - <<EOF > feedback.md
@@ -68,7 +80,6 @@ jobs:
                           )
                       feedback += "\n**Suggestions:**\n"
                       feedback += "- Address the reported issues by following PEP-8 and Python coding guidelines.\n"
-                      feedback += "- Simplify complex functions or refactor where needed.\n"
                   else:
                       feedback += "No issues detected.\n"
           except Exception as e:
@@ -84,34 +95,75 @@ jobs:
                           feedback += f"- {issue.strip()}\\n"
                       feedback += "\n**Suggestions:**\n"
                       feedback += "- Fix unused imports, indentation errors, and other PEP-8 violations.\n"
-                      feedback += "- Ensure consistent formatting and remove unnecessary whitespace.\n"
                   else:
                       feedback += "No issues detected.\n"
           except Exception as e:
               feedback += f"Error processing Flake8 results: {str(e)}\\n"
 
-          # Radon feedback
+          # Radon complexity feedback
           feedback += "\\n### 3. Cyclomatic Complexity Feedback\\n"
           try:
-              with open('radon_output.json', 'r') as f:
+              with open('radon_complexity_output.json', 'r') as f:
                   radon_issues = json.load(f)
                   for file, issues in radon_issues.items():
                       for issue in issues:
                           feedback += (
-                              f"- **{file}**: Function `{issue['name']}` at line {issue['lineno']} has complexity {issue['complexity']}.\n"
+                              f"- **{file}**: Function `{issue['name']}` at line {issue['lineno']} "
+                              f"has complexity {issue['complexity']}.\n"
                           )
-                      feedback += "\n**Suggestions:**\n"
-                      feedback += "- Refactor functions or methods with high complexity into smaller, reusable units.\n"
-                      feedback += "- Simplify nested loops or conditionals.\n"
+                  feedback += "\n**Suggestions:**\n"
+                  feedback += "- Refactor complex functions into smaller, reusable components.\n"
           except Exception as e:
-              feedback += f"Error processing Radon results: {str(e)}\\n"
+              feedback += f"Error processing Radon complexity results: {str(e)}\\n"
+
+          # Radon maintainability feedback
+          feedback += "\\n### 4. Maintainability Index Feedback\\n"
+          try:
+              with open('radon_maintainability_output.json', 'r') as f:
+                  radon_issues = json.load(f)
+                  for file, score in radon_issues.items():
+                      feedback += f"- **{file}**: Maintainability Index = {score}\\n"
+              feedback += "\n**Suggestions:**\n"
+              feedback += "- Improve maintainability by reducing complexity and following clean code principles.\\n"
+          except Exception as e:
+              feedback += f"Error processing Radon maintainability results: {str(e)}\\n"
+
+          # Bandit feedback
+          feedback += "\\n### 5. Security Analysis Feedback (Bandit)\\n"
+          try:
+              with open('bandit_output.json', 'r') as f:
+                  bandit_issues = json.load(f).get('results', [])
+                  for issue in bandit_issues:
+                      feedback += (
+                          f"- **{issue['filename']}** (Line {issue['line_number']}): {issue['issue_text']} "
+                          f"[Severity: {issue['issue_severity']}, Confidence: {issue['issue_confidence']}]\n"
+                      )
+              if not bandit_issues:
+                  feedback += "No security issues found by Bandit.\\n"
+          except Exception as e:
+              feedback += f"Error processing Bandit results: {str(e)}\\n"
+
+          # Snyk feedback
+          feedback += "\\n### 6. Dependency Security Scan (Snyk)\\n"
+          try:
+              with open('snyk_output.json', 'r') as f:
+                  snyk_issues = json.load(f).get('vulnerabilities', [])
+                  for vuln in snyk_issues:
+                      feedback += (
+                          f"- **{vuln['package']}** ({vuln['version']}): {vuln['title']} "
+                          f"[Severity: {vuln['severity']}]\n"
+                      )
+              if not snyk_issues:
+                  feedback += "No vulnerabilities found by Snyk.\\n"
+          except Exception as e:
+              feedback += f"Error processing Snyk results: {str(e)}\\n"
 
           # Save feedback to file
           with open('feedback.md', 'w') as f:
               f.write(feedback)
           EOF
 
-      # Step 8: Post Feedback as a Pull Request Comment
+      # Step 10: Post Feedback as a Pull Request Comment
       - name: Post Feedback
         uses: actions/github-script@v6
         with:
