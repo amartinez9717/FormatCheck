@@ -53,8 +53,7 @@ jobs:
           docformatter --check --recursive . > docformatter_output.txt || true
 
       # Step 8: AI Analysis Script
-            # Step 8: AI Analysis Script
-      - name: Run AI-Powered Analysis
+      - name: AI Analysis Script
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -72,7 +71,7 @@ jobs:
           echo "            content = f.read()" >> ai_analysis.py
           echo "        print(f'Analyzing {file}...')" >> ai_analysis.py
 
-          echo "        response = openai.ChatCompletion.create(" >> ai_analysis.py
+          echo "        response = openai.completions.create(" >> ai_analysis.py
           echo "            model='gpt-3.5-turbo'," >> ai_analysis.py
           echo "            messages=[" >> ai_analysis.py
           echo "                {'role': 'system', 'content': 'You are an expert Python code reviewer. Analyze the code for issues and provide actionable suggestions.'}," >> ai_analysis.py
