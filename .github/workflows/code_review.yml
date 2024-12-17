@@ -53,11 +53,11 @@ jobs:
           docker run --rm -v $(pwd):/project deepcode/cli analyze /project --output json > deepcode_output.json || true
 
       # Step 10: Snyk Security Analysis
-        - name: Run Snyk for Security Issues
-          env:
-            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          run: |
-            npm install -g snyk
+      - name: Run Snyk for Security Issues
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          npm install -g snyk
 
       # Step 11: Combine All Feedback into One Report
       - name: Combine Feedback Report
