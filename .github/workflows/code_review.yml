@@ -53,9 +53,20 @@ jobs:
           docformatter --check --recursive . > docformatter_output.txt || true
 
       # Step 8: Create AI Analysis Script
-      - name: Write AI Analysis Script
+      - name: AI Analysis (OpenAI GPT)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          printf 'import openai\nimport glob\nimport os\nimport traceback\n\nopenai.api_key = os.getenv("OPENAI_API_KEY")\nreport = "## AI-Powered Code Quality Report\\n\\n"\n\nfor file in glob.glob("**/*.py", recursive=True):\n    try:\n        with open(file, "r") as f:\n            content = f.read()\n        print(f"Analyzing {file}...")\n\n        response = openai.ChatCompletion.create(\n            model="gpt-3.5-turbo",\n            messages=[\n                {"role": "system", "content": "You are an expert Python reviewer. Analyze the code for issues and provide actionable suggestions."},\n                {"role": "user", "content": f"Code:\\n{content}"}\n            ],\n            max_tokens=500,\n            temperature=0.5\n        )\n\n        suggestions = response["choices"][0]["message"]["content"]\n        report += f"### File: {file}\\n{suggestions}\\n\\n"\n    except Exception as e:\n        print(f"Error analyzing {file}: {traceback.format_exc()}")\n        report += f"### File: {file}\\nError: {str(e)}\\n\\n"\n\nwith open("ai_feedback.md", "w") as feedback_file:\n    feedback_file.write(report)' > ai_analysis.py
+          python -c "import openai, glob, os; openai.api_key=os.getenv('OPENAI_API_KEY'); report='## AI-Powered Code Quality Report\n\n'; \
+          for file in glob.glob('**/*.py', recursive=True): \
+              try: print(f'Analyzing {file}...'); content=open(file).read(); \
+              response=openai.ChatCompletion.create(model='gpt-3.5-turbo', \
+              messages=[{'role':'system','content':'You are an expert Python code reviewer. Analyze for issues.'}, \
+              {'role':'user','content':f'Code:\n{content}'}], max_tokens=500, temperature=0.5); \
+              suggestions=response['choices'][0]['message']['content']; \
+              report+=f'### File: {file}\n{suggestions}\n\n'; \
+              except Exception as e: report+=f'### File: {file}\nError: {str(e)}\n\n'; \
+          open('ai_feedback.md', 'w').write(report)"
 
       # Step 9: Run AI-Powered Analysis
       - name: AI Analysis (OpenAI GPT)
@@ -70,7 +81,7 @@ jobs:
 
           echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
           cat pylint_output.json | jq -r '.[] | "- **\(.path)**: \(.message) [\(.symbol)]"' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
-          
+
           echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
           cat flake8_output.txt >> combined_feedback.md || echo "No Flake8 issues found." >> combined_feedback.md
 
