@@ -25,7 +25,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pylint flake8 radon bandit docformatter requests openai==1.14.3
+          pip install pylint flake8 radon bandit docformatter requests openai==1.14.3 jq
 
       # Step 3: Static Analysis (Pylint)
       - name: Run Pylint for Code Quality
@@ -53,11 +53,9 @@ jobs:
           docformatter --check --recursive . > docformatter_output.txt || true
 
       # Step 8: AI-Powered Analysis using OpenAI GPT
-      - name: AI Analysis (OpenAI GPT)
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Create AI Analysis Script
         run: |
-          python - <<EOF
+          cat <<'PYTHON' > ai_analysis.py
 import openai
 import glob
 import os
@@ -75,7 +73,7 @@ for file in glob.glob("**/*.py", recursive=True):
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are an expert Python reviewer. Analyze code for issues and provide actionable suggestions."},
+                {"role": "system", "content": "You are an expert Python reviewer. Analyze the code for issues and provide actionable suggestions."},
                 {"role": "user", "content": f"Code:\n{content}"}
             ],
             max_tokens=500,
@@ -90,7 +88,12 @@ for file in glob.glob("**/*.py", recursive=True):
 
 with open("ai_feedback.md", "w") as feedback_file:
     feedback_file.write(report)
-EOF
+PYTHON
+
+      - name: AI Analysis (OpenAI GPT)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python ai_analysis.py
 
       # Step 9: Combine All Feedback into One Report
       - name: Combine Feedback Report
