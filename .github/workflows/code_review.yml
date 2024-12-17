@@ -42,58 +42,25 @@ jobs:
         run: |
           radon cc . -s -j > radon_output.json || true
 
-      # Step 6: Security Analysis (Bandit)
-      - name: Run Bandit for Security Issues
-        run: |
-          bandit -r . -f json -o bandit_output.json || true
-
       # Step 7: Documentation Check (Docformatter)
       - name: Check Documentation Consistency
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 8: AI Analysis Script
-      - name: AI Analysis Script
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # Step 9: DeepCode Analysis
+      - name: Run DeepCode for Code Smells & Performance Issues
         run: |
-          echo "import openai" > ai_analysis.py
-          echo "import glob" >> ai_analysis.py
-          echo "import os" >> ai_analysis.py
-          echo "import traceback" >> ai_analysis.py
+          curl -sSL https://deepcode.io/cli/install.sh | bash
+          deepcode analyze . --output json > deepcode_output.json || true
 
-          echo "openai.api_key = os.getenv('OPENAI_API_KEY')" >> ai_analysis.py
-          echo "report = '## AI-Powered Code Quality Report\\n\\n'" >> ai_analysis.py
+      # Step 10: Snyk Security Analysis
+      - name: Run Snyk Security Analysis
+        run: |
+          curl -sL https://github.com/snyk/snyk/releases/download/v1.850.0/snyk-linux > snyk && chmod +x snyk
+          ./snyk auth ${{ secrets.SNYK_API_TOKEN }}
+          ./snyk test --all-projects --json > snyk_output.json || true
 
-          echo "for file in glob.glob('**/*.py', recursive=True):" >> ai_analysis.py
-          echo "    try:" >> ai_analysis.py
-          echo "        with open(file, 'r') as f:" >> ai_analysis.py
-          echo "            content = f.read()" >> ai_analysis.py
-          echo "        print(f'Analyzing {file}...')" >> ai_analysis.py
-
-          echo "        response = openai.chat.completions.create(" >> ai_analysis.py
-          echo "            model='gpt-3.5-turbo'," >> ai_analysis.py
-          echo "            messages=[" >> ai_analysis.py
-          echo "                {'role': 'system', 'content': 'You are an expert Python code reviewer. Analyze the code for issues and provide actionable suggestions.'}," >> ai_analysis.py
-          echo "                {'role': 'user', 'content': f'Code:\\n{content}'}" >> ai_analysis.py
-          echo "            ]," >> ai_analysis.py
-          echo "            max_tokens=500," >> ai_analysis.py
-          echo "            temperature=0.5" >> ai_analysis.py
-          echo "        )" >> ai_analysis.py
-
-          echo "        suggestions = response['choices'][0]['message']['content']" >> ai_analysis.py
-          echo "        report += f'### File: {file}\\n{suggestions}\\n\\n'" >> ai_analysis.py
-
-          echo "    except Exception as e:" >> ai_analysis.py
-          echo "        print(f'Error analyzing {file}: {traceback.format_exc()}')" >> ai_analysis.py
-          echo "        report += f'### File: {file}\\nError: {str(e)}\\n\\n'" >> ai_analysis.py
-
-          echo "with open('ai_feedback.md', 'w') as feedback_file:" >> ai_analysis.py
-          echo "    feedback_file.write(report)" >> ai_analysis.py
-
-          python ai_analysis.py
-
-      # Step 9: Combine All Feedback into One Report
+      # Step 11: Combine All Feedback into One Report
       - name: Combine Feedback Report
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
@@ -107,23 +74,23 @@ jobs:
           echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
           jq -r 'to_entries[] | "- **\(.key)**: \(.value[].name) (Complexity: \(.value[].complexity))"' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
 
-          echo "### 4. Security Analysis (Bandit)" >> combined_feedback.md
-          jq -r '.results[] | "- **\(.filename)**: \(.issue_text) [Severity: \(.issue_severity)]"' bandit_output.json >> combined_feedback.md || echo "No security issues found." >> combined_feedback.md
-
           echo "### 5. Documentation Check (Docformatter)" >> combined_feedback.md
           cat docformatter_output.txt >> combined_feedback.md || echo "Documentation is clean." >> combined_feedback.md
 
-          echo "### 6. AI-Powered Suggestions" >> combined_feedback.md
-          cat ai_feedback.md >> combined_feedback.md || echo "No AI feedback generated." >> combined_feedback.md
+          echo "### 7. DeepCode Analysis" >> combined_feedback.md
+          jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]"' deepcode_output.json >> combined_feedback.md || echo "No DeepCode issues found." >> combined_feedback.md
 
-      # Step 10: Upload Combined Report
+          echo "### 8. Snyk Security Analysis" >> combined_feedback.md
+          jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]"' snyk_output.json >> combined_feedback.md || echo "No Snyk issues found." >> combined_feedback.md
+
+      # Step 12: Upload Combined Report
       - name: Upload Feedback Report
         uses: actions/upload-artifact@v3
         with:
           name: combined-feedback
           path: combined_feedback.md
 
-      # Step 11: Post Feedback to Pull Request
+      # Step 13: Post Feedback to Pull Request
       - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
