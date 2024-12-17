@@ -26,7 +26,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pylint flake8 radon bandit docformatter requests
-          pip install openai==0.28.0  # Pin OpenAI version to 0.28.0
+          pip install --upgrade openai
 
       # Step 3: Static Analysis (Pylint)
       - name: Run Pylint for Code Quality
@@ -53,7 +53,7 @@ jobs:
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 8: AI-Powered Analysis using OpenAI GPT (Legacy API)
+      # Step 8: AI-Powered Analysis using OpenAI GPT (Updated API)
       - name: AI Analysis (OpenAI GPT)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -74,21 +74,19 @@ jobs:
 
               print(f"Analyzing {file} with AI...")
 
-              # Use OpenAI Completion API (compatible with version 0.28.0)
-              response = openai.Completion.create(
-                  engine="text-davinci-003",  # Use appropriate engine
-                  prompt=(
-                      "You are an expert Python code reviewer. Analyze the following code for "
-                      "security vulnerabilities, maintainability issues, and missing documentation. "
-                      "Provide actionable suggestions.\n\n"
-                      f"Code:\n{content}\n\nSuggestions:"
-                  ),
+              # Use the ChatCompletion API with gpt-3.5-turbo
+              response = openai.ChatCompletion.create(
+                  model="gpt-3.5-turbo",
+                  messages=[
+                      {"role": "system", "content": "You are an expert Python code reviewer. Analyze the code for security vulnerabilities, maintainability issues, and missing documentation, and provide actionable suggestions."},
+                      {"role": "user", "content": f"Code to review:\n\n{content}"}
+                  ],
                   max_tokens=800,
                   temperature=0.7
               )
 
               # Collect AI feedback
-              suggestions = response['choices'][0]['text']
+              suggestions = response['choices'][0]['message']['content']
               report += f"### File: {file}\n{suggestions}\n\n"
 
           # Save the AI-generated report
@@ -96,28 +94,28 @@ jobs:
               feedback_file.write(report)
           EOF
 
-      # Step 9: Combine All Feedback into One Report
-      - name: Combine Feedback Report
-        run: |
-          echo "## Code Review Feedback Report" > combined_feedback.md
-          
-          echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
-          cat pylint_output.json | jq -r '.[] | "- **\(.path)** (Line \(.line), Column \(.column)): \(.message) [\(.symbol)]"' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
-          
-          echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
-          cat flake8_output.txt >> combined_feedback.md || echo "No Flake8 issues found." >> combined_feedback.md
-          
-          echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
-          jq -r 'to_entries[] | "- **\(.key)**: Function \(.value[].name) at line \(.value[].lineno) has complexity \(.value[].complexity) (Grade: \(.value[].rank))"' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
-          
-          echo "### 4. Security Analysis (Bandit)" >> combined_feedback.md
-          cat bandit_output.json | jq -r '.results[] | "- **\(.filename)**: \(.issue_text) [Severity: \(.issue_severity)]"' >> combined_feedback.md || echo "No security issues found." >> combined_feedback.md
-          
-          echo "### 5. Documentation Check (Docformatter)" >> combined_feedback.md
-          cat docformatter_output.txt >> combined_feedback.md || echo "Documentation formatting is clean." >> combined_feedback.md
-          
-          echo "### 6. AI-Powered Suggestions" >> combined_feedback.md
-          cat ai_feedback.md >> combined_feedback.md
+        # Step 9: Combine All Feedback into One Report
+        - name: Combine Feedback Report
+          run: |
+            echo "## Code Review Feedback Report" > combined_feedback.md
+            
+            echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
+            cat pylint_output.json | jq -r '.[] | "- **\(.path)** (Line \(.line), Column \(.column)): \(.message) [\(.symbol)]"' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
+            
+            echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
+            cat flake8_output.txt >> combined_feedback.md || echo "No Flake8 issues found." >> combined_feedback.md
+            
+            echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
+            jq -r 'to_entries[] | "- **\(.key)**: Function \(.value[].name) at line \(.value[].lineno) has complexity \(.value[].complexity) (Grade: \(.value[].rank))"' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
+            
+            echo "### 4. Security Analysis (Bandit)" >> combined_feedback.md
+            cat bandit_output.json | jq -r '.results[] | "- **\(.filename)**: \(.issue_text) [Severity: \(.issue_severity)]"' >> combined_feedback.md || echo "No security issues found." >> combined_feedback.md
+            
+            echo "### 5. Documentation Check (Docformatter)" >> combined_feedback.md
+            cat docformatter_output.txt >> combined_feedback.md || echo "Documentation formatting is clean." >> combined_feedback.md
+            
+            echo "### 6. AI-Powered Suggestions" >> combined_feedback.md
+            cat ai_feedback.md >> combined_feedback.md
 
       # Step 10: Upload Combined Report
       - name: Upload Feedback Report
