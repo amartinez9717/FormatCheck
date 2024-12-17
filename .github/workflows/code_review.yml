@@ -56,7 +56,7 @@ jobs:
       - name: Run Snyk Security Analysis
         run: |
           curl -sL https://github.com/snyk/snyk/releases/download/v1.850.0/snyk-linux > snyk && chmod +x snyk
-          ./snyk auth ${{ secrets.SNYK_API_TOKEN }}
+          ./snyk auth ${{ secrets.SNYK_TOKEN }}
           ./snyk test --all-projects --json > snyk_output.json || true
 
       # Step 11: Combine All Feedback into One Report
