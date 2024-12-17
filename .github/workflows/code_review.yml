@@ -52,50 +52,18 @@ jobs:
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 8: AI-Powered Analysis using OpenAI GPT
-      - name: Create AI Analysis Script
+      # Step 8: Create AI Analysis Script
+      - name: Write AI Analysis Script
         run: |
-          cat <<'PYTHON' > ai_analysis.py
-import openai
-import glob
-import os
-import traceback
+          printf 'import openai\nimport glob\nimport os\nimport traceback\n\nopenai.api_key = os.getenv("OPENAI_API_KEY")\nreport = "## AI-Powered Code Quality Report\\n\\n"\n\nfor file in glob.glob("**/*.py", recursive=True):\n    try:\n        with open(file, "r") as f:\n            content = f.read()\n        print(f"Analyzing {file}...")\n\n        response = openai.ChatCompletion.create(\n            model="gpt-3.5-turbo",\n            messages=[\n                {"role": "system", "content": "You are an expert Python reviewer. Analyze the code for issues and provide actionable suggestions."},\n                {"role": "user", "content": f"Code:\\n{content}"}\n            ],\n            max_tokens=500,\n            temperature=0.5\n        )\n\n        suggestions = response["choices"][0]["message"]["content"]\n        report += f"### File: {file}\\n{suggestions}\\n\\n"\n    except Exception as e:\n        print(f"Error analyzing {file}: {traceback.format_exc()}")\n        report += f"### File: {file}\\nError: {str(e)}\\n\\n"\n\nwith open("ai_feedback.md", "w") as feedback_file:\n    feedback_file.write(report)' > ai_analysis.py
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-report = "## AI-Powered Code Quality Report\n\n"
-
-for file in glob.glob("**/*.py", recursive=True):
-    try:
-        with open(file, 'r') as f:
-            content = f.read()
-        print(f"Analyzing {file}...")
-
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are an expert Python reviewer. Analyze the code for issues and provide actionable suggestions."},
-                {"role": "user", "content": f"Code:\n{content}"}
-            ],
-            max_tokens=500,
-            temperature=0.5
-        )
-
-        suggestions = response['choices'][0]['message']['content']
-        report += f"### File: {file}\n{suggestions}\n\n"
-    except Exception as e:
-        print(f"Error analyzing {file}: {traceback.format_exc()}")
-        report += f"### File: {file}\nError: {str(e)}\n\n"
-
-with open("ai_feedback.md", "w") as feedback_file:
-    feedback_file.write(report)
-PYTHON
-
+      # Step 9: Run AI-Powered Analysis
       - name: AI Analysis (OpenAI GPT)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python ai_analysis.py
 
-      # Step 9: Combine All Feedback into One Report
+      # Step 10: Combine All Feedback into One Report
       - name: Combine Feedback Report
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
@@ -118,14 +86,14 @@ PYTHON
           echo "### 6. AI-Powered Suggestions" >> combined_feedback.md
           cat ai_feedback.md >> combined_feedback.md || echo "No AI feedback generated." >> combined_feedback.md
 
-      # Step 10: Upload Combined Report
+      # Step 11: Upload Combined Report
       - name: Upload Feedback Report
         uses: actions/upload-artifact@v3
         with:
           name: combined-feedback
           path: combined_feedback.md
 
-      # Step 11: Post Feedback to Pull Request
+      # Step 12: Post Feedback to Pull Request
       - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
