@@ -64,3 +64,4 @@ def example_function_2():
     unused_variable = 123
     another_unused = "Hello"
     print("This function does something minimal.")
+    
