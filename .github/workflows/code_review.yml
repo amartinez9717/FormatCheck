@@ -52,7 +52,7 @@ jobs:
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 8: AI-Powered Analysis using OpenAI GPT
+      # Step 8: AI-Powered Analysis using OpenAI GPT (New API)
       - name: AI Analysis (OpenAI GPT)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -60,9 +60,9 @@ jobs:
           python - <<EOF
           import openai
           import glob
-          import json
+          import os
 
-          openai.api_key = "${{ secrets.OPENAI_API_KEY }}"
+          openai.api_key = os.getenv("OPENAI_API_KEY")
           report = "## AI-Powered Code Quality Report\n\n"
 
           # Analyze Python files
@@ -70,20 +70,21 @@ jobs:
               with open(file, 'r') as f:
                   content = f.read()
 
-              # Call OpenAI GPT API for analysis
               print(f"Analyzing {file} with AI...")
-              response = openai.Completion.create(
-                  engine="gpt-4",
-                  prompt=f"Analyze the following Python code for:\n"
-                         f"1. Security vulnerabilities\n"
-                         f"2. Code maintainability issues\n"
-                         f"3. Missing or incomplete documentation\n"
-                         f"Provide actionable suggestions for improvement:\n\n{content}",
-                  max_tokens=600
+
+              # Use ChatCompletion API (new API)
+              response = openai.ChatCompletion.create(
+                  model="gpt-4",  # Or "gpt-3.5-turbo"
+                  messages=[
+                      {"role": "system", "content": "You are an expert code reviewer. Analyze the code for security vulnerabilities, maintainability issues, and missing documentation. Provide actionable suggestions."},
+                      {"role": "user", "content": f"Code to review:\n\n{content}"}
+                  ],
+                  max_tokens=800,
+                  temperature=0.7
               )
 
-              # Collect feedback
-              suggestions = response.choices[0].text.strip()
+              # Collect AI feedback
+              suggestions = response['choices'][0]['message']['content']
               report += f"### File: {file}\n{suggestions}\n\n"
 
           # Save the AI-generated report
