@@ -54,16 +54,8 @@ jobs:
 
       # Step 8: Snyk Security Analysis
       - name: Run Snyk for Security Issues
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Install Snyk CLI globally using npm
-          npm install -g snyk
-
-          # Authenticate with Snyk using the provided API token
-          snyk auth $SNYK_TOKEN
-
-          # Run Snyk test to check for security issues in project
+          snyk auth ${{ secrets.SNYK_TOKEN }}  # Authenticate using the SNYK_TOKEN secret
           snyk test --all-projects --json > snyk_output.json || true
 
       # Step 9: Combine All Feedback into One Report
