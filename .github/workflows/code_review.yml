@@ -30,17 +30,17 @@ jobs:
       # Step 3: Static Analysis (Pylint)
       - name: Run Pylint for Code Quality
         run: |
-          pylint **/*.py --output-format=json > pylint_output.json || true
+          find . -name "*.py" | xargs pylint --output-format=json > pylint_output.json || true
 
       # Step 4: Code Style Analysis (Flake8)
       - name: Run Flake8 for Style Issues
         run: |
-          flake8 **/*.py --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
+          flake8 . --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
 
       # Step 5: Cyclomatic Complexity Check (Radon)
       - name: Check Cyclomatic Complexity
         run: |
-          radon cc **/*.py -s -j > radon_output.json || true
+          radon cc . -s -j > radon_output.json || true
 
       # Step 6: Security Analysis (Bandit)
       - name: Run Bandit for Security Issues
@@ -61,39 +61,33 @@ jobs:
 import openai
 import glob
 import os
+import traceback
 
-# Set API key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 report = "## AI-Powered Code Quality Report\n\n"
 
-# Analyze Python files
 for file in glob.glob("**/*.py", recursive=True):
-    with open(file, 'r') as f:
-        content = f.read()
-
-    print(f"Analyzing {file} with AI...")
-
-    # Use ChatCompletion API with gpt-3.5-turbo (updated syntax for openai>=1.0.0)
     try:
+        with open(file, 'r') as f:
+            content = f.read()
+        print(f"Analyzing {file}...")
+
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are an expert Python code reviewer. Analyze the code for security vulnerabilities, maintainability issues, and missing documentation, and provide actionable suggestions."},
-                {"role": "user", "content": f"Code to review:\n\n{content}"}
+                {"role": "system", "content": "You are an expert Python reviewer. Analyze code for issues and provide actionable suggestions."},
+                {"role": "user", "content": f"Code:\n{content}"}
             ],
-            max_tokens=800,
-            temperature=0.7
+            max_tokens=500,
+            temperature=0.5
         )
 
-        # Collect AI feedback
-        suggestions = response.choices[0].message.content
+        suggestions = response['choices'][0]['message']['content']
         report += f"### File: {file}\n{suggestions}\n\n"
-
     except Exception as e:
-        print(f"Error analyzing {file}: {e}")
-        report += f"### File: {file}\nError analyzing the file: {str(e)}\n\n"
+        print(f"Error analyzing {file}: {traceback.format_exc()}")
+        report += f"### File: {file}\nError: {str(e)}\n\n"
 
-# Save the AI-generated report
 with open("ai_feedback.md", "w") as feedback_file:
     feedback_file.write(report)
 EOF
@@ -102,11 +96,52 @@ EOF
       - name: Combine Feedback Report
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
-          
+
           echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
-          cat pylint_output.json | jq -r '.[] | "- **\(.path)** (Line \(.line), Column \(.column)): \(.message) [\(.symbol)]"' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
+          cat pylint_output.json | jq -r '.[] | "- **\(.path)**: \(.message) [\(.symbol)]"' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
           
           echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
           cat flake8_output.txt >> combined_feedback.md || echo "No Flake8 issues found." >> combined_feedback.md
-          
-          echo "### 3. Cy
+
+          echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
+          jq -r 'to_entries[] | "- **\(.key)**: \(.value[].name) (Complexity: \(.value[].complexity))"' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
+
+          echo "### 4. Security Analysis (Bandit)" >> combined_feedback.md
+          jq -r '.results[] | "- **\(.filename)**: \(.issue_text) [Severity: \(.issue_severity)]"' bandit_output.json >> combined_feedback.md || echo "No security issues found." >> combined_feedback.md
+
+          echo "### 5. Documentation Check (Docformatter)" >> combined_feedback.md
+          cat docformatter_output.txt >> combined_feedback.md || echo "Documentation is clean." >> combined_feedback.md
+
+          echo "### 6. AI-Powered Suggestions" >> combined_feedback.md
+          cat ai_feedback.md >> combined_feedback.md || echo "No AI feedback generated." >> combined_feedback.md
+
+      # Step 10: Upload Combined Report
+      - name: Upload Feedback Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: combined-feedback
+          path: combined_feedback.md
+
+      # Step 11: Post Feedback to Pull Request
+      - name: Comment on Pull Request
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'combined_feedback.md';
+            if (fs.existsSync(path)) {
+              const feedback = fs.readFileSync(path, 'utf8');
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: feedback
+              });
+            } else {
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: "Code analysis failed to generate a report. Please check the workflow logs for details."
+              });
+            }
