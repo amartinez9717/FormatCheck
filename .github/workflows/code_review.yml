@@ -12,168 +12,122 @@ on:
       - '**/*.py'
 
 jobs:
-  code-review:
+  ai-code-quality:
+    name: AI-Powered Code Quality
     runs-on: ubuntu-latest
+
     steps:
-      # Step 1: Checkout code
-      - name: Checkout code
+      # Step 1: Checkout the code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Python
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
-
-      # Step 3: Install dependencies
-      - name: Install dependencies
+      # Step 2: Install Dependencies
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pylint flake8 radon bandit
-          curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -  # Install Node.js (version 16 or later)
-          sudo apt-get install -y nodejs
-          npm install -g snyk
+          pip install pylint flake8 radon bandit docformatter openai requests
 
-
-      # Step 4: Run Static Analysis (Pylint)
-      - name: Run Pylint Analysis
+      # Step 3: Static Analysis (Pylint)
+      - name: Run Pylint for Code Quality
         run: |
           pylint **/*.py --output-format=json > pylint_output.json || true
 
-      # Step 5: Run Static Analysis (Flake8)
-      - name: Run Flake8 Analysis
+      # Step 4: Code Style Analysis (Flake8)
+      - name: Run Flake8 for Style Issues
         run: |
           flake8 **/*.py --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
 
-      # Step 6: Measure Cyclomatic Complexity and Maintainability
-      - name: Run Cyclomatic Complexity Analysis
+      # Step 5: Cyclomatic Complexity Check (Radon)
+      - name: Check Cyclomatic Complexity
         run: |
-          radon cc **/*.py -s -j > radon_complexity_output.json || true
-          radon mi **/*.py -j > radon_maintainability_output.json || true
+          radon cc **/*.py -s -j > radon_output.json || true
 
-      # Step 7: Run Bandit Security Analysis
-      - name: Run Bandit Security Analysis
+      # Step 6: Security Analysis (Bandit)
+      - name: Run Bandit for Security Issues
         run: |
           bandit -r . -f json -o bandit_output.json || true
 
-      # Step 8: Run Snyk Security Scan
-      - name: Run Snyk Dependency Scan
-        run: snyk test --json > snyk_output.json || true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      # Step 9: Generate Feedback
-      - name: Generate Feedback
+      # Step 7: Documentation Check (Docformatter)
+      - name: Check Documentation Consistency
         run: |
-          python - <<EOF > feedback.md
+          docformatter --check --recursive . > docformatter_output.txt || true
+
+      # Step 8: AI-Powered Analysis using OpenAI GPT
+      - name: AI Analysis (OpenAI GPT)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python - <<EOF
+          import openai
+          import glob
           import json
 
-          # Initialize feedback
-          feedback = "## Code Review Feedback\\n"
+          openai.api_key = "${{ secrets.OPENAI_API_KEY }}"
+          report = "## AI-Powered Code Quality Report\n\n"
 
-          # Pylint feedback
-          feedback += "\\n### 1. Static Analysis Feedback (Pylint)\\n"
-          try:
-              with open('pylint_output.json', 'r') as f:
-                  pylint_issues = json.load(f)
-                  if pylint_issues:
-                      for issue in pylint_issues:
-                          feedback += (
-                              f"- **{issue['path']}** (Line {issue['line']}, Column {issue['column']}): "
-                              f"{issue['message']} [{issue['symbol']}]\n"
-                          )
-                      feedback += "\n**Suggestions:**\n"
-                      feedback += "- Address the reported issues by following PEP-8 and Python coding guidelines.\n"
-                  else:
-                      feedback += "No issues detected.\n"
-          except Exception as e:
-              feedback += f"Error processing Pylint results: {str(e)}\\n"
+          # Analyze Python files
+          for file in glob.glob("**/*.py", recursive=True):
+              with open(file, 'r') as f:
+                  content = f.read()
 
-          # Flake8 feedback
-          feedback += "\\n### 2. Static Analysis Feedback (Flake8)\\n"
-          try:
-              with open('flake8_output.txt', 'r') as f:
-                  flake8_issues = f.readlines()
-                  if flake8_issues:
-                      for issue in flake8_issues:
-                          feedback += f"- {issue.strip()}\\n"
-                      feedback += "\n**Suggestions:**\n"
-                      feedback += "- Fix unused imports, indentation errors, and other PEP-8 violations.\n"
-                  else:
-                      feedback += "No issues detected.\n"
-          except Exception as e:
-              feedback += f"Error processing Flake8 results: {str(e)}\\n"
+              # Call OpenAI GPT API for analysis
+              print(f"Analyzing {file} with AI...")
+              response = openai.Completion.create(
+                  engine="gpt-4",
+                  prompt=f"Analyze the following Python code for:\n"
+                         f"1. Security vulnerabilities\n"
+                         f"2. Code maintainability issues\n"
+                         f"3. Missing or incomplete documentation\n"
+                         f"Provide actionable suggestions for improvement:\n\n{content}",
+                  max_tokens=600
+              )
 
-          # Radon complexity feedback
-          feedback += "\\n### 3. Cyclomatic Complexity Feedback\\n"
-          try:
-              with open('radon_complexity_output.json', 'r') as f:
-                  radon_issues = json.load(f)
-                  for file, issues in radon_issues.items():
-                      for issue in issues:
-                          feedback += (
-                              f"- **{file}**: Function `{issue['name']}` at line {issue['lineno']} "
-                              f"has complexity {issue['complexity']}.\n"
-                          )
-                  feedback += "\n**Suggestions:**\n"
-                  feedback += "- Refactor complex functions into smaller, reusable components.\n"
-          except Exception as e:
-              feedback += f"Error processing Radon complexity results: {str(e)}\\n"
+              # Collect feedback
+              suggestions = response.choices[0].text.strip()
+              report += f"### File: {file}\n{suggestions}\n\n"
 
-          # Radon maintainability feedback
-          feedback += "\\n### 4. Maintainability Index Feedback\\n"
-          try:
-              with open('radon_maintainability_output.json', 'r') as f:
-                  radon_issues = json.load(f)
-                  for file, score in radon_issues.items():
-                      feedback += f"- **{file}**: Maintainability Index = {score}\\n"
-              feedback += "\n**Suggestions:**\n"
-              feedback += "- Improve maintainability by reducing complexity and following clean code principles.\\n"
-          except Exception as e:
-              feedback += f"Error processing Radon maintainability results: {str(e)}\\n"
-
-          # Bandit feedback
-          feedback += "\\n### 5. Security Analysis Feedback (Bandit)\\n"
-          try:
-              with open('bandit_output.json', 'r') as f:
-                  bandit_issues = json.load(f).get('results', [])
-                  for issue in bandit_issues:
-                      feedback += (
-                          f"- **{issue['filename']}** (Line {issue['line_number']}): {issue['issue_text']} "
-                          f"[Severity: {issue['issue_severity']}, Confidence: {issue['issue_confidence']}]\n"
-                      )
-              if not bandit_issues:
-                  feedback += "No security issues found by Bandit.\\n"
-          except Exception as e:
-              feedback += f"Error processing Bandit results: {str(e)}\\n"
-
-          # Snyk feedback
-          feedback += "\\n### 6. Dependency Security Scan (Snyk)\\n"
-          try:
-              with open('snyk_output.json', 'r') as f:
-                  snyk_issues = json.load(f).get('vulnerabilities', [])
-                  for vuln in snyk_issues:
-                      feedback += (
-                          f"- **{vuln['package']}** ({vuln['version']}): {vuln['title']} "
-                          f"[Severity: {vuln['severity']}]\n"
-                      )
-              if not snyk_issues:
-                  feedback += "No vulnerabilities found by Snyk.\\n"
-          except Exception as e:
-              feedback += f"Error processing Snyk results: {str(e)}\\n"
-
-          # Save feedback to file
-          with open('feedback.md', 'w') as f:
-              f.write(feedback)
+          # Save the AI-generated report
+          with open("ai_feedback.md", "w") as feedback_file:
+              feedback_file.write(report)
           EOF
 
-      # Step 10: Post Feedback as a Pull Request Comment
-      - name: Post Feedback
+      # Step 9: Combine All Feedback into One Report
+      - name: Combine Feedback Report
+        run: |
+          echo "## Code Review Feedback Report" > combined_feedback.md
+          
+          echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
+          cat pylint_output.json | jq -r '.[] | "- **\(.path)** (Line \(.line), Column \(.column)): \(.message) [\(.symbol)]"' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
+          
+          echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
+          cat flake8_output.txt >> combined_feedback.md || echo "No Flake8 issues found." >> combined_feedback.md
+          
+          echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
+          jq -r 'to_entries[] | "- **\(.key)**: Function \(.value[].name) at line \(.value[].lineno) has complexity \(.value[].complexity) (Grade: \(.value[].rank))"' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
+          
+          echo "### 4. Security Analysis (Bandit)" >> combined_feedback.md
+          cat bandit_output.json | jq -r '.results[] | "- **\(.filename)**: \(.issue_text) [Severity: \(.issue_severity)]"' >> combined_feedback.md || echo "No security issues found." >> combined_feedback.md
+          
+          echo "### 5. Documentation Check (Docformatter)" >> combined_feedback.md
+          cat docformatter_output.txt >> combined_feedback.md || echo "Documentation formatting is clean." >> combined_feedback.md
+          
+          echo "### 6. AI-Powered Suggestions" >> combined_feedback.md
+          cat ai_feedback.md >> combined_feedback.md
+
+      # Step 10: Upload Combined Report
+      - name: Upload Feedback Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: combined-feedback
+          path: combined_feedback.md
+
+      # Step 11: Post Feedback to Pull Request
+      - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
-            const feedback = fs.readFileSync('feedback.md', 'utf8');
+            const feedback = fs.readFileSync('combined_feedback.md', 'utf8');
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

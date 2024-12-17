@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo "Running pre-commit checks..."
+.\run_checks.bat
+
+# Stop commit if there are any critical issues
+if [ $? -ne 0 ]; then
+    echo "Code checks failed. Commit aborted."
+    exit 1
+else
+    echo "Code checks passed!"
+fi
