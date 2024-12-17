@@ -54,5 +54,3 @@ if __name__ == "__main__":
     manager = DataManager(data)
     print("Data length:", manager.get_data_length())
     manager.print_data()
-
-    
