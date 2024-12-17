@@ -27,7 +27,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv
           source venv/bin/activate
-          pip install pylint flake8 radon bandit docformatter requests openai==1.15.0
+          pip install pylint flake8 radon bandit docformatter requests openai==1.14.3
 
       # Step 3: Static Analysis (Pylint)
       - name: Run Pylint for Code Quality
