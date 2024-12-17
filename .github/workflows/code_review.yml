@@ -47,14 +47,10 @@ jobs:
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 9: DeepCode Analysis
-      - name: Run DeepCode for Code Smells & Performance Issues
+      # Step 9: DeepCode Analysis via Docker
+      - name: Run DeepCode in Docker for Code Smells & Performance Issues
         run: |
-          curl -sSL https://cdn.deepcode.ai/cli/deepcode-cli-linux.tar.gz -o deepcode-cli-linux.tar.gz
-          tar -xvzf deepcode-cli-linux.tar.gz
-          mv deepcode-cli /usr/local/bin/deepcode
-          deepcode analyze . --output json > deepcode_output.json || true
-
+          docker run --rm -v $(pwd):/project deepcode/cli analyze /project --output json > deepcode_output.json || true
 
       # Step 10: Snyk Security Analysis
       - name: Run Snyk Security Analysis
