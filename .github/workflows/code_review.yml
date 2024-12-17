@@ -42,54 +42,67 @@ jobs:
         run: |
           radon cc . -s -j > radon_output.json || true
 
-      # Step 7: Documentation Check (Docformatter)
+      # Step 6: Documentation Check (Docformatter)
       - name: Check Documentation Consistency
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 9: DeepCode Analysis via Docker
+      # Step 7: DeepCode Analysis via Docker
       - name: Run DeepCode in Docker for Code Smells & Performance Issues
         run: |
           docker run --rm -v $(pwd):/project deepcode/cli analyze /project --output json > deepcode_output.json || true
 
-      # Step 10: Snyk Security Analysis
+      # Step 8: Snyk Security Analysis
       - name: Run Snyk for Security Issues
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
+          # Install Snyk CLI globally using npm
           npm install -g snyk
 
-      # Step 11: Combine All Feedback into One Report
+          # Authenticate with Snyk using the provided API token
+          snyk auth $SNYK_TOKEN
+
+          # Run Snyk test to check for security issues in project
+          snyk test --all-projects --json > snyk_output.json || true
+
+      # Step 9: Combine All Feedback into One Report
       - name: Combine Feedback Report
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
 
           echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
-          cat pylint_output.json | jq -r '.[] | "- **\(.path)**: \(.message) [\(.symbol)]"' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
+          cat pylint_output.json | jq -r '.[] | "- **\(.path)**: \(.message) [\(.symbol)]" + "\n**Suggestion**: Consider fixing this by..."' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
 
           echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
-          cat flake8_output.txt >> combined_feedback.md || echo "No Flake8 issues found." >> combined_feedback.md
+          cat flake8_output.txt | while read line; do
+            echo "$line" >> combined_feedback.md
+            echo "**Suggestion**: Ensure consistent code style for readability." >> combined_feedback.md
+          done || echo "No Flake8 issues found." >> combined_feedback.md
 
           echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
-          jq -r 'to_entries[] | "- **\(.key)**: \(.value[].name) (Complexity: \(.value[].complexity))"' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
+          jq -r 'to_entries[] | "- **\(.key)**: \(.value[].name) (Complexity: \(.value[].complexity))" + "\n**Suggestion**: Refactor the code to reduce complexity."' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
 
-          echo "### 5. Documentation Check (Docformatter)" >> combined_feedback.md
-          cat docformatter_output.txt >> combined_feedback.md || echo "Documentation is clean." >> combined_feedback.md
+          echo "### 4. Documentation Check (Docformatter)" >> combined_feedback.md
+          cat docformatter_output.txt | while read line; do
+            echo "$line" >> combined_feedback.md
+            echo "**Suggestion**: Review the documentation for consistency." >> combined_feedback.md
+          done || echo "Documentation is clean." >> combined_feedback.md
 
-          echo "### 7. DeepCode Analysis" >> combined_feedback.md
-          jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]"' deepcode_output.json >> combined_feedback.md || echo "No DeepCode issues found." >> combined_feedback.md
+          echo "### 5. DeepCode Analysis" >> combined_feedback.md
+          jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]" + "\n**Suggestion**: Review the code for potential performance improvements."' deepcode_output.json >> combined_feedback.md || echo "No DeepCode issues found." >> combined_feedback.md
 
-          echo "### 8. Snyk Security Analysis" >> combined_feedback.md
-          jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]"' snyk_output.json >> combined_feedback.md || echo "No Snyk issues found." >> combined_feedback.md
+          echo "### 6. Snyk Security Analysis" >> combined_feedback.md
+          jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md || echo "No Snyk issues found." >> combined_feedback.md
 
-      # Step 12: Upload Combined Report
+      # Step 10: Upload Combined Report
       - name: Upload Feedback Report
         uses: actions/upload-artifact@v3
         with:
           name: combined-feedback
           path: combined_feedback.md
 
-      # Step 13: Post Feedback to Pull Request
+      # Step 11: Post Feedback to Pull Request
       - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
