@@ -52,29 +52,41 @@ jobs:
         run: |
           docformatter --check --recursive . > docformatter_output.txt || true
 
-      # Step 8: Create AI Analysis Script
+      # Step 8: Create and Run AI Analysis Script
       - name: AI Analysis (OpenAI GPT)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python -c "import openai, glob, os; openai.api_key=os.getenv('OPENAI_API_KEY'); report='## AI-Powered Code Quality Report\n\n'; \
-          for file in glob.glob('**/*.py', recursive=True): \
-              try: print(f'Analyzing {file}...'); content=open(file).read(); \
-              response=openai.ChatCompletion.create(model='gpt-3.5-turbo', \
-              messages=[{'role':'system','content':'You are an expert Python code reviewer. Analyze for issues.'}, \
-              {'role':'user','content':f'Code:\n{content}'}], max_tokens=500, temperature=0.5); \
-              suggestions=response['choices'][0]['message']['content']; \
-              report+=f'### File: {file}\n{suggestions}\n\n'; \
-              except Exception as e: report+=f'### File: {file}\nError: {str(e)}\n\n'; \
-          open('ai_feedback.md', 'w').write(report)"
+          echo "import openai" > ai_analysis.py
+          echo "import glob" >> ai_analysis.py
+          echo "import os" >> ai_analysis.py
+          echo "import traceback" >> ai_analysis.py
+          echo "openai.api_key = os.getenv('OPENAI_API_KEY')" >> ai_analysis.py
+          echo "report = '## AI-Powered Code Quality Report\\n\\n'" >> ai_analysis.py
+          echo "for file in glob.glob('**/*.py', recursive=True):" >> ai_analysis.py
+          echo "    try:" >> ai_analysis.py
+          echo "        with open(file, 'r') as f:" >> ai_analysis.py
+          echo "            content = f.read()" >> ai_analysis.py
+          echo "        print(f'Analyzing {file}...')" >> ai_analysis.py
+          echo "        response = openai.ChatCompletion.create(" >> ai_analysis.py
+          echo "            model='gpt-3.5-turbo'," >> ai_analysis.py
+          echo "            messages=[" >> ai_analysis.py
+          echo "                {'role': 'system', 'content': 'You are an expert Python code reviewer. Analyze the code for issues and provide actionable suggestions.'}," >> ai_analysis.py
+          echo "                {'role': 'user', 'content': f'Code:\\n{content}'}" >> ai_analysis.py
+          echo "            ]," >> ai_analysis.py
+          echo "            max_tokens=500," >> ai_analysis.py
+          echo "            temperature=0.5" >> ai_analysis.py
+          echo "        )" >> ai_analysis.py
+          echo "        suggestions = response['choices'][0]['message']['content']" >> ai_analysis.py
+          echo "        report += f'### File: {file}\\n{suggestions}\\n\\n'" >> ai_analysis.py
+          echo "    except Exception as e:" >> ai_analysis.py
+          echo "        print(f'Error analyzing {file}: {traceback.format_exc()}')" >> ai_analysis.py
+          echo "        report += f'### File: {file}\\nError: {str(e)}\\n\\n'" >> ai_analysis.py
+          echo "with open('ai_feedback.md', 'w') as feedback_file:" >> ai_analysis.py
+          echo "    feedback_file.write(report)" >> ai_analysis.py
+          python ai_analysis.py
 
-      # Step 9: Run AI-Powered Analysis
-      - name: AI Analysis (OpenAI GPT)
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python ai_analysis.py
-
-      # Step 10: Combine All Feedback into One Report
+      # Step 9: Combine All Feedback into One Report
       - name: Combine Feedback Report
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
@@ -97,14 +109,14 @@ jobs:
           echo "### 6. AI-Powered Suggestions" >> combined_feedback.md
           cat ai_feedback.md >> combined_feedback.md || echo "No AI feedback generated." >> combined_feedback.md
 
-      # Step 11: Upload Combined Report
+      # Step 10: Upload Combined Report
       - name: Upload Feedback Report
         uses: actions/upload-artifact@v3
         with:
           name: combined-feedback
           path: combined_feedback.md
 
-      # Step 12: Post Feedback to Pull Request
+      # Step 11: Post Feedback to Pull Request
       - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
