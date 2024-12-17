@@ -1,63 +1,56 @@
-# This module demonstrates code analysis features for static analysis and AST.
+import os
+import sys
 
-import os  # Unused import (flake8, pylint)
-
-# Function with poor design to test static analysis tools
 def process_data(data):
-    """Processes data using an inefficient pattern."""
-    result = []
-    for i in range(len(data)):  # Using range(len()) is a common anti-pattern
-        result.append(data[i] * 2)
+    # This function processes data but lacks docstrings and has high complexity.
+    result = 0
+    for i in range(len(data)):
+        if data[i] > 0:
+            for j in range(data[i]):
+                result += j * data[i]
+                if result % 5 == 0:
+                    print("Divisible by 5")
+                else:
+                    print("Not divisible by 5")
+        else:
+            print("Skipping negative values")
     return result
 
-def another_function(data, value): # Missing whitespace around the operator
-    return [x+value for x in data] # No spaces around operators (flake8)
+def insecure_function(user_input):
+    # Security risk: Using eval is dangerous.
+    return eval(user_input)
 
-class LargeClass:  # A class intentionally designed to be large
-    def __init__(self):
-        self.data = [i for i in range(100)]
+def calculate_sum(a, b):
+    return a + b  # Missing docstring.
 
-    def method_one(self):
-        pass
+class DataManager:
+    def __init__(self, data):
+        self.data = data
 
-    # Add multiple methods to simulate a large class
-    def method_two(self): pass
-    def method_three(self): pass
-    def method_four(self): pass
-    def method_five(self): pass
-    def method_six(self): pass
-    def method_seven(self): pass
-    def method_eight(self): pass
-    def method_nine(self): pass
-    def method_ten(self): pass
+    def get_data_length(self):
+        # Function with a redundant loop.
+        count = 0
+        for _ in self.data:
+            count += 1
+        return count
 
-def complex_function(a, b, c):
-    """A complex function to demonstrate cyclomatic complexity."""
-    if a > b:
-        if b > c:
-            return a
-        else:
-            return b
-    elif b > c:
-        if a > c:
-            return b
-        else:
-            return c
-    else:
-        return c
+    def print_data(self):
+        # Inconsistent indentation
+          for item in self.data:
+                print(item)
 
-# Very large function example for AST analysis
-def very_large_function(data):
-    """This function has too many lines."""
-    total = 0
-    for i in range(10):
-        total += i
-    for j in range(10):
-        total += j
-    for k in range(10):
-        total += k
-    for l in range(10):
-        total += l
-    for m in range(10):
-        total += m
-    return total
+def unused_function():
+    pass
+
+# Main program
+if __name__ == "__main__":
+    data = [1, -1, 3, 5]
+    print("Processing data...")
+    process_data(data)
+
+    user_input = "3 + 5"
+    print("Insecure function result:", insecure_function(user_input))
+
+    manager = DataManager(data)
+    print("Data length:", manager.get_data_length())
+    manager.print_data()
