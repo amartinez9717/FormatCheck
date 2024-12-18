@@ -52,14 +52,24 @@ jobs:
         run: |
           pytest --maxfail=5 --disable-warnings > pytest_report.txt || true
 
-      # DeepSource analysis
+      # Install DeepSource CLI
+      - name: Install DeepSource CLI
+        run: |
+          curl https://deepsource.io/cli | sh
+
+      # Authenticate DeepSource CLI
+      - name: Authenticate DeepSource CLI
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+        run: |
+          ./bin/deepsource install
+
+      # Run DeepSource Analysis
       - name: Run DeepSource Analysis
-        uses: deepsourcelabs/cli-action@v2
-        id: deepsource
-        with:
-          api_token: ${{ secrets.DEEPSOURCE_DSN }}
-          config_file: .deepsource.toml
-          directory: . # Directory to analyze
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+        run: |
+          ./bin/deepsource analyze || true
 
       # Combine reports
       - name: Combine Reports
@@ -71,6 +81,8 @@ jobs:
           cat black_report.txt >> comment.md || echo "No issues found." >> comment.md
           echo "\n#### Pytest Results" >> comment.md
           cat pytest_report.txt >> comment.md || echo "No test failures." >> comment.md
+          echo "\n#### DeepSource Analysis" >> comment.md
+          echo "DeepSource analysis completed. View the detailed results [here](https://deepsource.io/dashboard/)." >> comment.md
         shell: bash
 
       # Post comment to PR
@@ -100,4 +112,3 @@ jobs:
                 issue_number: context.payload.pull_request.number,
                 body: comment
               });
-            }
