@@ -119,15 +119,22 @@ jobs:
             echo "Documentation is clean." >> combined_feedback.md
           fi
           
-          echo "### 5. DeepCode Analysis" >> combined_feedback.md
-          if [ -s deepcode_output.json ]; then
+          deepcode_file="deepcode_output.json"
+          # Output file for the formatted feedback
+          output_file="combined_feedback.md"
+          echo "### 5. DeepCode Analysis" > "$output_file"
+          # Check if the DeepCode file exists and has content
+          if [ -s "$deepcode_file" ]; then
+            # Parse the JSON and generate a readable report
             jq -r '
-              .[] | 
-              select(type == "object" and has("file") and has("message") and has("severity")) | 
-              "- **\(.file)**: \(.message) [\(.severity)]\n**Suggestion**: Review the code for potential performance improvements."
-            ' deepcode_output.json >> combined_feedback.md
+              .runs[].results[] | 
+              "- **File**: \(.locations[0].physicalLocation.artifactLocation.uri)
+              **Line**: \(.locations[0].physicalLocation.region.startLine)
+              **Error**: \(.message.text)
+              **Suggestion**: \(.message.markdown // "No suggestion provided.")"
+            ' "$deepcode_file" >> "$output_file"
           else
-            echo "No DeepCode issues found." >> combined_feedback.md
+            echo "No DeepCode issues found." >> "$output_file"
           fi
 
           # Snyk Feedback
