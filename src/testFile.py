@@ -104,4 +104,3 @@ def  poorly_formatted_function ( ) :
   This function has inconsistent spacing in its definition.
   """
   print("This is a poorly formatted function.")
-  
