@@ -123,8 +123,10 @@ jobs:
           echo "Contents of deepcode_output.json:"
           cat deepcode_output.json || echo "DeepCode output is empty or missing."
 
-          # Process JSON if it exists and is not empty
-          if [ -s deepcode_output.json ]; then
+          # Check if Snyk Code is unsupported
+          if grep -q '"error": "Snyk Code is not supported"' deepcode_output.json; then
+            echo "Snyk Code is not supported for this project. Skipping DeepCode analysis." >> combined_feedback.md
+          elif [ -s deepcode_output.json ]; then
             jq -r '
               if (.runs? // []) | length > 0 then
                 .runs[].results[]? |
@@ -139,7 +141,6 @@ jobs:
           else
             echo "DeepCode output is empty or invalid." >> combined_feedback.md
           fi
-
           # Snyk Feedback
           echo "### 6. Snyk Security Analysis" >> combined_feedback.md
           #if [ -s snyk_output.json ]; then
