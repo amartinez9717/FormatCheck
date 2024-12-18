@@ -63,7 +63,7 @@ jobs:
       # Step 8: DeepCode Analysis
       - name: Run DeepCode in Docker for Code Smells & Performance Issues
         run: |
-          snyk code test --json > snyk_code_output.json || true
+          snyk code test --json > deepcode_output.json || true
 
       # Step 9: Snyk Security Analysis
       - name: Run Snyk for Security Issues
