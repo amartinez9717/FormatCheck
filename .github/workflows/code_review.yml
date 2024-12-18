@@ -50,12 +50,12 @@ jobs:
       # Step 7: Documentation Check (Docformatter)
       - name: Check Documentation Consistency
         run: |
-          docformatter --check --recursive . > docformatter_output.txt || true
+          docformatter --check --recursive ../ > docformatter_output.txt || true
 
-      # Step 8: DeepCode Analysis via Docker
+      # Step 8: DeepCode Analysis
       - name: Run DeepCode in Docker for Code Smells & Performance Issues
         run: |
-          docker run --rm -v $(pwd):/project deepcode/cli analyze /project --output json > deepcode_output.json || true
+          snyk code test --json > snyk_code_output.json || true
 
       # Step 9: Snyk Security Analysis
       - name: Run Snyk for Security Issues
@@ -114,7 +114,7 @@ jobs:
           # DeepCode Feedback
           echo "### 5. DeepCode Analysis" >> combined_feedback.md
           if [ -s deepcode_output.json ]; then
-            jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]" + "\n**Suggestion**: Review the code for potential performance improvements."' deepcode_output.json >> combined_feedback.md
+            jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]" + "\n**Suggestion**: Review the code for potential performance improvements."' snyk_code_output.json >> combined_feedback.md
           else
             echo "No DeepCode issues found." >> combined_feedback.md
           fi
