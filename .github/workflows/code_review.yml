@@ -51,7 +51,7 @@ jobs:
       - name: Check Documentation Consistency
         run: |
           echo "Running docformatter on all Python files..."
-          find . -name "*.py" -exec docformatter --diff {} + > docformatter_output.txt || true
+          find . -name "*.py" -exec docformatter --diff {} \; | grep -E '(^---|^@@|^-)' > docformatter_output.json || true
 
           if [ -s docformatter_output.txt ]; then
             echo "Docformatter found issues:"
@@ -121,7 +121,7 @@ jobs:
 
           # DeepCode Feedback
           echo "### 5. DeepCode Analysis" >> combined_feedback.md
-          if [ -s deepcode_output.json ]; then
+          if [ -s snyk_code_output.json ]; then
             jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]" + "\n**Suggestion**: Review the code for potential performance improvements."' snyk_code_output.json >> combined_feedback.md
           else
             echo "No DeepCode issues found." >> combined_feedback.md

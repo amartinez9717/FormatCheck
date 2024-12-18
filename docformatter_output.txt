@@ -1,0 +1,52 @@
+--- before/./src/testFile.py
++++ after/./src/testFile.py
+@@ -47,8 +47,7 @@
+ 
+ # Docstring issues (Docformatter will flag this)
+ def function_with_inconsistent_docstring():
+-    """This is a poorly formatted docstring
+-    that should be fixed."""
++    """This is a poorly formatted docstring that should be fixed."""
+     return "Hello, World!"
+ 
+ # A simple function with poor variable names (Pylint will flag this)
+@@ -67,8 +66,8 @@
+ 
+ # Documentation Error: Missing or poorly formatted docstrings
+ def insecure_function(file_path):
+-  """
+-  Executes a shell command.
++  """Executes a shell command.
++
+   The file_path parameter is not validated properly.
+   """
+   command = f"cat {file_path}"  # Command injection vulnerability
+@@ -76,9 +75,7 @@
+ 
+ 
+ def unused_function():
+-  """
+-  This function is not used anywhere.
+-  """
++  """This function is not used anywhere."""
+   pass
+ 
+ # DeepCode Issue: Unused variable and improper exception handling
+@@ -93,15 +90,11 @@
+ 
+ # Security Vulnerability: Use of insecure method (eval)
+ def dangerous_eval(user_input):
+-  """
+-  Evaluate user input directly without sanitization.
+-  """
++  """Evaluate user input directly without sanitization."""
+   return eval(user_input)  # Potential code execution vulnerability
+ 
+ # Poorly formatted function
+ def  poorly_formatted_function ( ) :
+-  """
+-  This function has inconsistent spacing in its definition.
+-  """
++  """This function has inconsistent spacing in its definition."""
+   print("This is a poorly formatted function.")
+   
