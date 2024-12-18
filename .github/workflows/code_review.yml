@@ -61,7 +61,7 @@ jobs:
       - name: Run Snyk for Security Issues
         run: |
           snyk auth ${{ secrets.SNYK_TOKEN }}  # Authenticate using the SNYK_TOKEN secret
-          snyk test --all-projects --json > snyk_output.json || true
+          snyk test > snyk_output.json || true
 
           # Handle empty or invalid output
           if [ ! -s snyk_output.json ]; then
@@ -121,8 +121,9 @@ jobs:
 
           # Snyk Feedback
           echo "### 6. Snyk Security Analysis" >> combined_feedback.md
-          if [ -s snyk_output.json ] && jq empty snyk_output.json 2>/dev/null; then
-            jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md
+          if [ -s snyk_output.json ]; then
+            # Use jq to handle missing fields gracefully
+            jq -r '.issues? // [] | .[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md || echo "Failed to parse Snyk output."
           else
             echo "No Snyk issues found or failed to process Snyk output." >> combined_feedback.md
           fi
