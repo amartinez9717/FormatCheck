@@ -68,29 +68,59 @@ jobs:
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
 
+          # Pylint Feedback
           echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
-          cat pylint_output.json | jq -r '.[] | "- **\(.path)**: \(.message) [\(.symbol)]" + "\n**Suggestion**: Consider fixing this by..."' >> combined_feedback.md || echo "No Pylint issues found." >> combined_feedback.md
+          if [ -s pylint_output.json ]; then
+            jq -r '.[] | "- **\(.path)**: \(.message) [\(.symbol)]" + "\n**Suggestion**: Consider fixing this by..."' pylint_output.json >> combined_feedback.md
+          else
+            echo "No Pylint issues found." >> combined_feedback.md
+          fi
 
+          # Flake8 Feedback
           echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
-          cat flake8_output.txt | while read line; do
-            echo "$line" >> combined_feedback.md
-            echo "**Suggestion**: Ensure consistent code style for readability." >> combined_feedback.md
-          done || echo "No Flake8 issues found." >> combined_feedback.md
+          if [ -s flake8_output.txt ]; then
+            cat flake8_output.txt | while read line; do
+              echo "$line" >> combined_feedback.md
+              echo "**Suggestion**: Ensure consistent code style for readability." >> combined_feedback.md
+            done
+          else
+            echo "No Flake8 issues found." >> combined_feedback.md
+          fi
 
+          # Radon Feedback
           echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
-          jq -r 'to_entries[] | "- **\(.key)**: \(.value[].name) (Complexity: \(.value[].complexity))" + "\n**Suggestion**: Refactor the code to reduce complexity."' radon_output.json >> combined_feedback.md || echo "No complexity issues found." >> combined_feedback.md
+          if [ -s radon_output.json ]; then
+            jq -r 'to_entries[] | "- **\(.key)**: \(.value[].name) (Complexity: \(.value[].complexity))" + "\n**Suggestion**: Refactor the code to reduce complexity."' radon_output.json >> combined_feedback.md
+          else
+            echo "No complexity issues found." >> combined_feedback.md
+          fi
 
+          # Docformatter Feedback
           echo "### 4. Documentation Check (Docformatter)" >> combined_feedback.md
-          cat docformatter_output.txt | while read line; do
-            echo "$line" >> combined_feedback.md
-            echo "**Suggestion**: Review the documentation for consistency." >> combined_feedback.md
-          done || echo "Documentation is clean." >> combined_feedback.md
+          if [ -s docformatter_output.txt ]; then
+            cat docformatter_output.txt | while read line; do
+              echo "$line" >> combined_feedback.md
+              echo "**Suggestion**: Review the documentation for consistency." >> combined_feedback.md
+            done
+          else
+            echo "Documentation is clean." >> combined_feedback.md
+          fi
 
+          # DeepCode Feedback
           echo "### 5. DeepCode Analysis" >> combined_feedback.md
-          jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]" + "\n**Suggestion**: Review the code for potential performance improvements."' deepcode_output.json >> combined_feedback.md || echo "No DeepCode issues found." >> combined_feedback.md
+          if [ -s deepcode_output.json ]; then
+            jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]" + "\n**Suggestion**: Review the code for potential performance improvements."' deepcode_output.json >> combined_feedback.md
+          else
+            echo "No DeepCode issues found." >> combined_feedback.md
+          fi
 
+          # Snyk Feedback
           echo "### 6. Snyk Security Analysis" >> combined_feedback.md
-          jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md || echo "No Snyk issues found." >> combined_feedback.md
+          if [ -s snyk_output.json ]; then
+            jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md
+          else
+            echo "No Snyk issues found." >> combined_feedback.md
+          fi
 
       # Step 11: Upload Combined Report
       - name: Upload Feedback Report
