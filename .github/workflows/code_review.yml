@@ -118,11 +118,14 @@ jobs:
           else
             echo "Documentation is clean." >> combined_feedback.md
           fi
-
-          # DeepCode Feedback
+          
           echo "### 5. DeepCode Analysis" >> combined_feedback.md
-          if [ -s snyk_code_output.json ]; then
-            jq -r '.[] | "- **\(.file)**: \(.message) [\(.severity)]" + "\n**Suggestion**: Review the code for potential performance improvements."' snyk_code_output.json >> combined_feedback.md
+          if [ -s deepcode_output.json ]; then
+            jq -r '
+              .[] | 
+              select(type == "object" and has("file") and has("message") and has("severity")) | 
+              "- **\(.file)**: \(.message) [\(.severity)]\n**Suggestion**: Review the code for potential performance improvements."
+            ' deepcode_output.json >> combined_feedback.md
           else
             echo "No DeepCode issues found." >> combined_feedback.md
           fi
