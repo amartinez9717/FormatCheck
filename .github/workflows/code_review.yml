@@ -119,10 +119,14 @@ jobs:
             echo "Documentation is clean." >> combined_feedback.md
           fi
           
-          echo "### 5. DeepCode Analysis" > "combined_feedback.md"
+          # Debug JSON output
+          echo "Contents of deepcode_output.json:"
+          cat deepcode_output.json || echo "DeepCode output is empty or missing."
+
+          # Process JSON if it exists and is not empty
           if [ -s deepcode_output.json ]; then
             jq -r '
-              if .runs? then
+              if (.runs? // []) | length > 0 then
                 .runs[].results[]? |
                 "- **File**: \(.locations[0]?.physicalLocation?.artifactLocation?.uri // "Unknown")
                 **Line**: \(.locations[0]?.physicalLocation?.region?.startLine // "Unknown")
@@ -131,9 +135,9 @@ jobs:
               else
                 "No issues found."
               end
-            ' deepcode_output.json >> combined_feedback.md || echo "Failed to parse DeepCode output."
+            ' deepcode_output.json >> combined_feedback.md
           else
-            echo "DeepCode output is empty or missing." >> combined_feedback.md
+            echo "DeepCode output is empty or invalid." >> combined_feedback.md
           fi
 
           # Snyk Feedback
