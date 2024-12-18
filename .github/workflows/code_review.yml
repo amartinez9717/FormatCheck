@@ -5,153 +5,99 @@ permissions:
   issues: write
 
 on:
+  push:
+    branches:
+      - main
+      - 'feature/*'
   pull_request:
     branches:
       - main
-    paths:
-      - '**/*.py'
 
 jobs:
-  ai-code-quality:
-    name: AI-Powered Code Quality
+  code_review:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the code
+      # Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Install Dependencies
+      # Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Install dependencies
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pylint flake8 radon docformatter requests jq
+          pip install flake8 black pytest
 
-      # Step 3: Install Snyk CLI
-      - name: Install Snyk CLI
+      # Run Flake8 for linting
+      - name: Run Flake8 (Linting)
+        id: flake8
         run: |
-          npm install -g snyk
+          flake8 . > flake8_report.txt || true
 
-      # Step 4: Install DeepSource CLI
-      - name: Install DeepSource CLI
+      # Check code formatting with Black
+      - name: Check Formatting (Black)
+        id: black
         run: |
-          pip install deepsource
+          black --check . > black_report.txt || true
 
-      # Step 5: Authenticate with DeepSource
-      - name: Authenticate DeepSource CLI
+      # Run tests with Pytest
+      - name: Run Tests
+        id: pytest
         run: |
-          echo ${{ secrets.DEEPSOURCE_API_TOKEN }} | deepsource login
+          pytest --maxfail=5 --disable-warnings > pytest_report.txt || true
 
-      # Step 6: Static Analysis (Pylint)
-      - name: Run Pylint for Code Quality
-        run: |
-          find . -name "*.py" | xargs pylint --output-format=json > pylint_output.json || true
-
-      # Step 7: Code Style Analysis (Flake8)
-      - name: Run Flake8 for Style Issues
-        run: |
-          flake8 . --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
-
-      # Step 8: Cyclomatic Complexity Check (Radon)
-      - name: Check Cyclomatic Complexity
-        run: |
-          radon cc . -s -j > radon_output.json || true
-
-      # Step 9: Documentation Check (Docformatter)
-      - name: Check Documentation Consistency
-        run: |
-          echo "Running docformatter on all Python files..."
-          find . -name "*.py" -exec docformatter --diff {} \; | grep -E '(^---|^@@|^-)' > docformatter_output.json || true
-
-          if [ -s docformatter_output.txt ]; then
-            echo "Docformatter found issues:"
-            cat docformatter_output.txt
-          else
-            echo "Docformatter found no issues."
-          fi
-
-      # Step 10: Run DeepSource Analysis
+      # DeepSource analysis
       - name: Run DeepSource Analysis
-        run: deepsource analyze || true
-
-      # Step 11: Combine All Feedback into One Report
-      - name: Combine Feedback Report
-        run: |
-          echo "## Code Review Feedback Report" > combined_feedback.md
-
-          # Pylint Feedback
-          echo "### 1. Static Analysis (Pylint)" >> combined_feedback.md
-          if [ -s pylint_output.json ]; then
-            jq -r '.[] | "- **\(.path)**: \(.message) [\(.symbol)]" + "\n**Suggestion**: Consider fixing this by..."' pylint_output.json >> combined_feedback.md
-          else
-            echo "No Pylint issues found." >> combined_feedback.md
-          fi
-
-          # Flake8 Feedback
-          echo "### 2. Style Analysis (Flake8)" >> combined_feedback.md
-          if [ -s flake8_output.txt ]; then
-            cat flake8_output.txt | while read line; do
-              echo "$line" >> combined_feedback.md
-              echo "**Suggestion**: Ensure consistent code style for readability." >> combined_feedback.md
-            done
-          else
-            echo "No Flake8 issues found." >> combined_feedback.md
-          fi
-
-          # Radon Feedback
-          echo "### 3. Cyclomatic Complexity (Radon)" >> combined_feedback.md
-          if [ -s radon_output.json ]; then
-            jq -r 'to_entries[] | "- **\(.key)**: \(.value[].name) (Complexity: \(.value[].complexity))" + "\n**Suggestion**: Refactor the code to reduce complexity."' radon_output.json >> combined_feedback.md
-          else
-            echo "No complexity issues found." >> combined_feedback.md
-          fi
-
-          # Docformatter Feedback
-          echo "### 4. Documentation Check (Docformatter)" >> combined_feedback.md
-          if [ -s docformatter_output.txt ]; then
-            cat docformatter_output.txt | while read line; do
-              echo "$line" >> combined_feedback.md
-              echo "**Suggestion**: Review the documentation for consistency." >> combined_feedback.md
-            done
-          else
-            echo "Documentation is clean." >> combined_feedback.md
-          fi
-
-          # DeepSource Feedback
-          echo "### 5. DeepSource Analysis" >> combined_feedback.md
-          if [ -f .deepsource/report.json ]; then
-            jq -r '.[] | "- **\(.filename)**: \(.message)"' .deepsource/report.json >> combined_feedback.md
-          else
-            echo "No DeepSource issues found." >> combined_feedback.md
-          fi
-
-      # Step 12: Upload Combined Report
-      - name: Upload Feedback Report
-        uses: actions/upload-artifact@v3
+        uses: deepsourcelabs/cli-action@v2
+        id: deepsource
         with:
-          name: combined-feedback
-          path: combined_feedback.md
+          api_token: ${{ secrets.DEEPSOURCE_API_TOKEN }}
+          config_file: .deepsource.toml
+          directory: . # Directory to analyze
 
-      # Step 13: Post Feedback to Pull Request
+      # Combine reports
+      - name: Combine Reports
+        run: |
+          echo "### Code Review Results" > comment.md
+          echo "#### Flake8 Issues" >> comment.md
+          cat flake8_report.txt >> comment.md || echo "No issues found." >> comment.md
+          echo "\n#### Black Formatting Check" >> comment.md
+          cat black_report.txt >> comment.md || echo "No issues found." >> comment.md
+          echo "\n#### Pytest Results" >> comment.md
+          cat pytest_report.txt >> comment.md || echo "No test failures." >> comment.md
+        shell: bash
+
+      # Post comment to PR
       - name: Comment on Pull Request
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
-            const path = 'combined_feedback.md';
-            if (fs.existsSync(path)) {
-              const feedback = fs.readFileSync(path, 'utf8');
-              github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-                body: feedback
+            const comment = fs.readFileSync('comment.md', 'utf8');
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number
+            });
+
+            const botComment = comments.find(comment => comment.user.type === 'Bot' && comment.body.includes('### Code Review Results'));
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: botComment.id,
+                body: comment
               });
             } else {
-              github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+              await github.rest.issues.createComment({
+                ...context.repo,
                 issue_number: context.payload.pull_request.number,
-                body: "Code analysis failed to generate a report. Please check the workflow logs for details."
+                body: comment
               });
             }
