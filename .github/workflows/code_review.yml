@@ -1,114 +1,43 @@
-name: Code Review Assistant
-
-permissions:
-  pull-requests: write
-  issues: write
+name: Code Analysis
 
 on:
-  push:
-    branches:
-      - main
-      - 'feature/*'
   pull_request:
-    branches:
-      - main
+    paths:
+      - '**/*.py'
 
 jobs:
-  code_review:
+  analyze:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository
-      - name: Checkout Code
-        uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      # Set up Python environment
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      # Install dependencies
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 black pytest
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pylint joblib
 
-      # Run Flake8 for linting
-      - name: Run Flake8 (Linting)
-        id: flake8
-        run: |
-          flake8 . > flake8_report.txt || true
+    - name: Run Code Assistant
+      run: python code_assistant.py
 
-      # Check code formatting with Black
-      - name: Check Formatting (Black)
-        id: black
-        run: |
-          black --check . > black_report.txt || true
-
-      # Run tests with Pytest
-      - name: Run Tests
-        id: pytest
-        run: |
-          pytest --maxfail=5 --disable-warnings > pytest_report.txt || true
-
-      # Install DeepSource CLI
-      - name: Install DeepSource CLI
-        run: |
-          curl https://deepsource.io/cli | sh
-
-      # Authenticate DeepSource CLI
-      - name: Authenticate DeepSource CLI
-        env:
-          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
-        run: |
-          ./bin/deepsource install
-
-      # Run DeepSource Analysis
-      - name: Run DeepSource Analysis
-        env:
-          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
-        run: |
-          ./bin/deepsource analyze || true
-
-      # Combine reports
-      - name: Combine Reports
-        run: |
-          echo "### Code Review Results" > comment.md
-          echo "#### Flake8 Issues" >> comment.md
-          cat flake8_report.txt >> comment.md || echo "No issues found." >> comment.md
-          echo "\n#### Black Formatting Check" >> comment.md
-          cat black_report.txt >> comment.md || echo "No issues found." >> comment.md
-          echo "\n#### Pytest Results" >> comment.md
-          cat pytest_report.txt >> comment.md || echo "No test failures." >> comment.md
-          echo "\n#### DeepSource Analysis" >> comment.md
-          echo "DeepSource analysis completed. View the detailed results [here](https://deepsource.io/dashboard/)." >> comment.md
-        shell: bash
-
-      # Post comment to PR
-      - name: Comment on Pull Request
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const comment = fs.readFileSync('comment.md', 'utf8');
-            const { data: comments } = await github.rest.issues.listComments({
-              ...context.repo,
-              issue_number: context.payload.pull_request.number
-            });
-
-            const botComment = comments.find(comment => comment.user.type === 'Bot' && comment.body.includes('### Code Review Results'));
-            
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                ...context.repo,
-                comment_id: botComment.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
+    - name: Comment on Pull Request
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const feedback = JSON.parse(fs.readFileSync('feedback.json', 'utf8'));
+          for (const [file, comments] of Object.entries(feedback)) {
+            for (const comment of comments) {
+              github.rest.issues.createComment({
                 ...context.repo,
                 issue_number: context.payload.pull_request.number,
-                body: comment
+                body: `File: ${file}\nComment: ${comment}`,
               });
+            }
+          }

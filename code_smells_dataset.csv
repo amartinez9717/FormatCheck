@@ -1,0 +1,9 @@
+code;label
+def foo(): pass;NoError
+def calculate(a, b): return a + b;Long Method
+x = 42;Magic Number
+def bad_func():\n  for i in range(10):\n    for j in range(10):\n      print(i + j);Deep Nesting
+result = []\nfor i in range(100):\n  result.append(i * 2);Inefficient Loop
+def very_long_function():\n  return sum([i for i in range(100)]);Long Method
+y = 0\nx = y + 5\n# TODO: Replace magic number 5 with a constant;Magic Number
+def bad_naming_function():\n  tmp1 = 10\n  tmp2 = 20\n  return tmp1 + tmp2;Poor Naming
