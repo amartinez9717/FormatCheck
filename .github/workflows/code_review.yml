@@ -57,7 +57,7 @@ jobs:
         uses: deepsourcelabs/cli-action@v2
         id: deepsource
         with:
-          api_token: ${{ secrets.DEEPSOURCE_API_TOKEN }}
+          api_token: ${{ secrets.DEEPSOURCE_DSN }}
           config_file: .deepsource.toml
           directory: . # Directory to analyze
 
