@@ -63,6 +63,11 @@ jobs:
           snyk auth ${{ secrets.SNYK_TOKEN }}  # Authenticate using the SNYK_TOKEN secret
           snyk test --all-projects --json > snyk_output.json || true
 
+          # Handle empty or invalid output
+          if [ ! -s snyk_output.json ]; then
+            echo '{}' > snyk_output.json
+          fi
+
       # Step 10: Combine All Feedback into One Report
       - name: Combine Feedback Report
         run: |
@@ -116,10 +121,10 @@ jobs:
 
           # Snyk Feedback
           echo "### 6. Snyk Security Analysis" >> combined_feedback.md
-          if [ -s snyk_output.json ]; then
+          if [ -s snyk_output.json ] && jq empty snyk_output.json 2>/dev/null; then
             jq -r '.issues[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md
           else
-            echo "No Snyk issues found." >> combined_feedback.md
+            echo "No Snyk issues found or failed to process Snyk output." >> combined_feedback.md
           fi
 
       # Step 11: Upload Combined Report
