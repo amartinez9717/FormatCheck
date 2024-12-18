@@ -1,9 +1,6 @@
-# Code Assistant with Static Analysis, Pattern Recognition, and Feedback Generation
-# This script uses GitHub Actions to automatically analyze code and comment feedback on pull requests.
-
 import os
 import re
-from pylint import epylint as lint
+from pylint import lint
 import joblib
 
 # Load pre-trained ML model for pattern recognition (code smells)
@@ -28,8 +25,8 @@ class CodeAssistant:
 
     def run_static_analysis(self, file_path):
         """Run static analysis using pylint."""
-        pylint_stdout, pylint_stderr = lint.py_run(file_path, return_std=True)
-        return pylint_stdout.read()
+        pylint_output = lint.Run([file_path], return_std=True)
+        return pylint_output.linter.reporter.data  # Collects the output from the static analysis
 
     def run_ml_analysis(self, file_path):
         """Run machine learning analysis on the file content."""
