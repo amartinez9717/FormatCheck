@@ -1,66 +1,69 @@
-import os
-import math  # Unused import
-import json
+import os  # Unused import
 
-# Global variable with improper naming
-my_var = 42
-
-# Function missing a docstring
-def example_function_1(x, y):
-    a = x + y
-    b = x - y
-    c = x * y
-    d = x / y
-    return a, b, c, d
-
-# Function too long (pylint, cyclomatic complexity issues)
-def long_function_with_high_complexity(n):
-    # No docstring
-    if n > 0:
-        if n % 2 == 0:
-            for i in range(n):
-                if i % 3 == 0:
-                    print(f"Divisible by 3: {i}")
-                else:
-                    print(f"Not divisible by 3: {i}")
+# Function with high cyclomatic complexity
+def complex_function(a, b, c):
+    if a > b:
+        if b > c:
+            return a + b + c
+        elif b == c:
+            return a - b - c
         else:
-            while n > 0:
-                n -= 1
-                if n == 5:
-                    print("N is five")
+            return a * b * c
     else:
-        print("N is zero or negative")
-    return n
+        if a == c:
+            return a
+        elif a < b:
+            return b
+        else:
+            return c
 
-# Class too large and missing a docstring
-class ExampleClass:
-    def __init__(self):
-        self.data = []
+# Missing docstring (Pylint will flag this)
+def add(x, y):
+    return x + y
 
-    def add(self, item):
-        self.data.append(item)
+# Function with too many nested conditions (DeepCode warning for complexity)
+def deep_code_issue(x):
+    if x > 10:
+        if x < 20:
+            if x == 15:
+                return "Very Specific"
+            else:
+                return "Between 10 and 20"
+        else:
+            return "Greater than 20"
+    else:
+        return "Smaller than 10"
 
-    def remove(self, item):
-        if item in self.data:
-            self.data.remove(item)
+# Function with a multiple statements in one line (Flake8 warning)
+def multiple_statements_in_one_line():
+    a = 10; b = 20  # Multiple statements in one line (Flake8 warning)
+    return a + b
 
-    def print_all(self):
-        for item in self.data:
-            print(item)
+# Function with unused variable (DeepCode warning)
+def unused_variable(x):
+    y = x * 2  # Unused variable y
+    return x
 
-    def clear(self):
-        self.data = []
+# Docstring issues (Docformatter will flag this)
+def function_with_inconsistent_docstring():
+    """This is a poorly formatted docstring
+    that should be fixed."""
+    return "Hello, World!"
 
-    def save(self, filename):
-        with open(filename, 'w') as f:
-            json.dump(self.data, f)
+# Security vulnerability (Snyk will detect this if you use an outdated library like 'requests' with known vulnerabilities)
+import requests
 
-    def load(self, filename):
-        with open(filename, 'r') as f:
-            self.data = json.load(f)
+def security_vulnerable_function():
+    response = requests.get('https://example.com')
+    return response.content
 
-# Function with unused variables
-def example_function_2():
-    unused_variable = 123
-    another_unused = "Hello"
-    print("This function does something minimal.")
+# A simple function with poor variable names (Pylint will flag this)
+def f(x, y):
+    z = x + y
+    return z
+
+# Function with missing blank lines (Flake8 will flag this)
+def missing_blank_lines():
+    x = 10
+    y = 20
+    return x + y
