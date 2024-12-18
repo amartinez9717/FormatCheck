@@ -1,0 +1,18 @@
+version = 1
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+  [analyzers.meta]
+  runtime_version = "3.x" # Use your project's Python version
+
+  [analyzers.options]
+  lint = true        # Check for linting issues
+  security = true    # Check for security issues
+  style = true       # Check for style inconsistencies
+  performance = true # Check for performance bottlenecks
+
+  [[analyzers.test_patterns]]
+  pattern = "tests/**/*" # Exclude test files from analysis
+  category = "test"

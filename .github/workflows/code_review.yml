@@ -32,22 +32,32 @@ jobs:
         run: |
           npm install -g snyk
 
-      # Step 4: Static Analysis (Pylint)
+      # Step 4: Install DeepSource CLI
+      - name: Install DeepSource CLI
+        run: |
+          pip install deepsource
+
+      # Step 5: Authenticate with DeepSource
+      - name: Authenticate DeepSource CLI
+        run: |
+          echo ${{ secrets.DEEPSOURCE_API_TOKEN }} | deepsource login
+
+      # Step 6: Static Analysis (Pylint)
       - name: Run Pylint for Code Quality
         run: |
           find . -name "*.py" | xargs pylint --output-format=json > pylint_output.json || true
 
-      # Step 5: Code Style Analysis (Flake8)
+      # Step 7: Code Style Analysis (Flake8)
       - name: Run Flake8 for Style Issues
         run: |
           flake8 . --format='%(path)s:%(row)d:%(col)d: %(code)s %(text)s' > flake8_output.txt || true
 
-      # Step 6: Cyclomatic Complexity Check (Radon)
+      # Step 8: Cyclomatic Complexity Check (Radon)
       - name: Check Cyclomatic Complexity
         run: |
           radon cc . -s -j > radon_output.json || true
 
-      # Step 7: Documentation Check (Docformatter)
+      # Step 9: Documentation Check (Docformatter)
       - name: Check Documentation Consistency
         run: |
           echo "Running docformatter on all Python files..."
@@ -60,23 +70,11 @@ jobs:
             echo "Docformatter found no issues."
           fi
 
-      # Step 8: DeepCode Analysis
-      - name: Run DeepCode in Docker for Code Smells & Performance Issues
-        run: |
-          snyk code test --json > deepcode_output.json || true
+      # Step 10: Run DeepSource Analysis
+      - name: Run DeepSource Analysis
+        run: deepsource analyze || true
 
-      # Step 9: Snyk Security Analysis
-      - name: Run Snyk for Security Issues
-        run: |
-          snyk auth ${{ secrets.SNYK_TOKEN }}  # Authenticate using the SNYK_TOKEN secret
-          snyk test > snyk_output.json || true
-
-          # Handle empty or invalid output
-          if [ ! -s snyk_output.json ]; then
-            echo '{}' > snyk_output.json
-          fi
-
-      # Step 10: Combine All Feedback into One Report
+      # Step 11: Combine All Feedback into One Report
       - name: Combine Feedback Report
         run: |
           echo "## Code Review Feedback Report" > combined_feedback.md
@@ -118,46 +116,23 @@ jobs:
           else
             echo "Documentation is clean." >> combined_feedback.md
           fi
-          
-          # Debug JSON output
-          echo "Contents of deepcode_output.json:"
-          cat deepcode_output.json || echo "DeepCode output is empty or missing."
 
-          # Check if Snyk Code is unsupported
-          if grep -q '"error": "Snyk Code is not supported"' deepcode_output.json; then
-            echo "Snyk Code is not supported for this project. Skipping DeepCode analysis." >> combined_feedback.md
-          elif [ -s deepcode_output.json ]; then
-            jq -r '
-              if (.runs? // []) | length > 0 then
-                .runs[].results[]? |
-                "- **File**: \(.locations[0]?.physicalLocation?.artifactLocation?.uri // "Unknown")
-                **Line**: \(.locations[0]?.physicalLocation?.region?.startLine // "Unknown")
-                **Error**: \(.message?.text // "No error message provided.")
-                **Suggestion**: \(.message?.markdown // "No suggestion provided.")"
-              else
-                "No issues found."
-              end
-            ' deepcode_output.json >> combined_feedback.md
+          # DeepSource Feedback
+          echo "### 5. DeepSource Analysis" >> combined_feedback.md
+          if [ -f .deepsource/report.json ]; then
+            jq -r '.[] | "- **\(.filename)**: \(.message)"' .deepsource/report.json >> combined_feedback.md
           else
-            echo "DeepCode output is empty or invalid." >> combined_feedback.md
+            echo "No DeepSource issues found." >> combined_feedback.md
           fi
-          # Snyk Feedback
-          echo "### 6. Snyk Security Analysis" >> combined_feedback.md
-          #if [ -s snyk_output.json ]; then
-          #  # Use jq to handle missing fields gracefully
-          #  jq -r '.issues? // [] | .[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md || echo "Failed to parse Snyk output."
-          #else
-          #  echo "No Snyk issues found or failed to process Snyk output." >> combined_feedback.md
-          #fi
 
-      # Step 11: Upload Combined Report
+      # Step 12: Upload Combined Report
       - name: Upload Feedback Report
         uses: actions/upload-artifact@v3
         with:
           name: combined-feedback
           path: combined_feedback.md
 
-      # Step 12: Post Feedback to Pull Request
+      # Step 13: Post Feedback to Pull Request
       - name: Comment on Pull Request
         uses: actions/github-script@v6
         with:
