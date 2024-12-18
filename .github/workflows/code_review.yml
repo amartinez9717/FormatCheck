@@ -129,12 +129,12 @@ jobs:
 
           # Snyk Feedback
           echo "### 6. Snyk Security Analysis" >> combined_feedback.md
-          if [ -s snyk_output.json ]; then
-            # Use jq to handle missing fields gracefully
-            jq -r '.issues? // [] | .[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md || echo "Failed to parse Snyk output."
-          else
-            echo "No Snyk issues found or failed to process Snyk output." >> combined_feedback.md
-          fi
+          #if [ -s snyk_output.json ]; then
+          #  # Use jq to handle missing fields gracefully
+          #  jq -r '.issues? // [] | .[] | "- **\(.package)**: \(.title) [Severity: \(.severity)]" + "\n**Suggestion**: Consider upgrading to a more secure version of this package."' snyk_output.json >> combined_feedback.md || echo "Failed to parse Snyk output."
+          #else
+          #  echo "No Snyk issues found or failed to process Snyk output." >> combined_feedback.md
+          #fi
 
       # Step 11: Upload Combined Report
       - name: Upload Feedback Report
