@@ -81,15 +81,7 @@ def unused_function():
   """
   pass
 
-# DeepCode Issue: Unused variable and improper exception handling
-def calculate():
-  try:
-    result = 10 / 0  # This will raise a ZeroDivisionError
-  except:
-    print("Something went wrong!")  # Broad exception: hides details
-    return None
-
-  unused_variable = 42  # Unused variable
+unused_variable = 42  # Unused variable
 
 # Security Vulnerability: Use of insecure method (eval)
 def dangerous_eval(user_input):
@@ -104,4 +96,5 @@ def  poorly_formatted_function ( ) :
   This function has inconsistent spacing in its definition.
   """
   print("This is a poorly formatted function.")
-  
+
+def calculate(a, b): return a + b
