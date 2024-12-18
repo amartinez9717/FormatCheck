@@ -120,18 +120,20 @@ jobs:
           fi
           
           echo "### 5. DeepCode Analysis" > "combined_feedback.md"
-          # Check if the DeepCode file exists and has content
-          if [ -s "deepcode_output.json" ]; then
-            # Parse the JSON and generate a readable report
+          if [ -s deepcode_output.json ]; then
             jq -r '
-              .runs[].results[] | 
-              "- **File**: \(.locations[0].physicalLocation.artifactLocation.uri)
-              **Line**: \(.locations[0].physicalLocation.region.startLine)
-              **Error**: \(.message.text)
-              **Suggestion**: \(.message.markdown // "No suggestion provided.")"
-            ' "deepcode_output.json" >> "combined_feedback.md"
+              if .runs? then
+                .runs[].results[]? |
+                "- **File**: \(.locations[0]?.physicalLocation?.artifactLocation?.uri // "Unknown")
+                **Line**: \(.locations[0]?.physicalLocation?.region?.startLine // "Unknown")
+                **Error**: \(.message?.text // "No error message provided.")
+                **Suggestion**: \(.message?.markdown // "No suggestion provided.")"
+              else
+                "No issues found."
+              end
+            ' deepcode_output.json >> combined_feedback.md || echo "Failed to parse DeepCode output."
           else
-            echo "No DeepCode issues found." >> "combined_feedback.md"
+            echo "DeepCode output is empty or missing." >> combined_feedback.md
           fi
 
           # Snyk Feedback
