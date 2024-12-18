@@ -51,13 +51,6 @@ def function_with_inconsistent_docstring():
     that should be fixed."""
     return "Hello, World!"
 
-# Security vulnerability (Snyk will detect this if you use an outdated library like 'requests' with known vulnerabilities)
-import requests
-
-def security_vulnerable_function():
-    response = requests.get('https://example.com')
-    return response.content
-
 # A simple function with poor variable names (Pylint will flag this)
 def f(x, y):
     z = x + y
@@ -68,3 +61,46 @@ def missing_blank_lines():
     x = 10
     y = 20
     return x + y
+
+# Security Vulnerability: Hardcoded secret
+API_KEY = "12345-SECRET-KEY"
+
+# Documentation Error: Missing or poorly formatted docstrings
+def insecure_function(file_path):
+  """
+  Executes a shell command.
+  The file_path parameter is not validated properly.
+  """
+  command = f"cat {file_path}"  # Command injection vulnerability
+  subprocess.call(command, shell=True)  # Dangerous: Allows command injection
+
+
+def unused_function():
+  """
+  This function is not used anywhere.
+  """
+  pass
+
+# DeepCode Issue: Unused variable and improper exception handling
+def calculate():
+  try:
+    result = 10 / 0  # This will raise a ZeroDivisionError
+  except:
+    print("Something went wrong!")  # Broad exception: hides details
+    return None
+
+  unused_variable = 42  # Unused variable
+
+# Security Vulnerability: Use of insecure method (eval)
+def dangerous_eval(user_input):
+  """
+  Evaluate user input directly without sanitization.
+  """
+  return eval(user_input)  # Potential code execution vulnerability
+
+# Poorly formatted function
+def  poorly_formatted_function ( ) :
+  """
+  This function has inconsistent spacing in its definition.
+  """
+  print("This is a poorly formatted function.")
