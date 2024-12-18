@@ -50,17 +50,12 @@ jobs:
       # Step 7: Documentation Check (Docformatter)
       - name: Check Documentation Consistency
         run: |
-          echo "Running docformatter..."
-          TARGET_DIR="../src"  # Directory containing the Python files
-          if find $TARGET_DIR -name "*.py" | grep -q "."; then
-            docformatter --check --recursive $TARGET_DIR --verbose > docformatter_output.txt || true
-            echo "Docformatter completed."
-          else
-            echo "No Python files found in $TARGET_DIR."
-          fi
-          if [ -s docformatter_output.txt ]; then
+          echo "Running docformatter on all Python files..."
+          find . -name "*.py" -exec docformatter --check {} + > docformatter_output.txt || true
+
+          if [ -s $OUTPUT_FILE ]; then
             echo "Docformatter found issues:"
-            cat docformatter_output.txt
+            cat $OUTPUT_FILE
           else
             echo "Docformatter found no issues."
           fi
