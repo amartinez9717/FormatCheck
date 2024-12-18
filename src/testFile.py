@@ -17,8 +17,8 @@ def complex_function(a, b, c):
         else:
             return c
 
-# Missing docstring (Pylint will flag this)
-def add(x, y):
+
+def add(x, y): # Missing docstring (Pylint will flag this)
     return x + y
 
 # Function with too many nested conditions (DeepCode warning for complexity)
@@ -42,6 +42,7 @@ def multiple_statements_in_one_line():
 # Function with unused variable (DeepCode warning)
 def unused_variable(x):
     y = x * 2  # Unused variable y
+    z = x * 3  # Unused variable z
     return x
 
 # Docstring issues (Docformatter will flag this)
