@@ -51,11 +51,11 @@ jobs:
       - name: Check Documentation Consistency
         run: |
           echo "Running docformatter on all Python files..."
-          find . -name "*.py" -exec docformatter --check {} + > docformatter_output.txt || true
+          find . -name "*.py" -exec docformatter --diff {} + > docformatter_output.txt || true
 
-          if [ -s $OUTPUT_FILE ]; then
+          if [ -s docformatter_output.txt ]; then
             echo "Docformatter found issues:"
-            cat $OUTPUT_FILE
+            cat docformatter_output.txt
           else
             echo "Docformatter found no issues."
           fi
