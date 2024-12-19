@@ -1,0 +1,171 @@
+Flake8 Report:
+.\.github\workflows\src\testFile.py:1:1: F401 'os' imported but unused
+.\.github\workflows\src\testFile.py:2:1: F401 'math' imported but unused
+.\.github\workflows\src\testFile.py:9:1: E302 expected 2 blank lines, found 1
+.\.github\workflows\src\testFile.py:17:1: E302 expected 2 blank lines, found 1
+.\.github\workflows\src\testFile.py:36:1: E302 expected 2 blank lines, found 1
+.\.github\workflows\src\testFile.py:63:1: E302 expected 2 blank lines, found 1
+.\.github\workflows\src\testFile.py:64:5: F841 local variable 'unused_variable' is assigned to but never used
+.\.github\workflows\src\testFile.py:65:5: F841 local variable 'another_unused' is assigned to but never used
+.\.github\workflows\src\testFile.py:67:1: W293 blank line contains whitespace
+.\.github\workflows\src\testFile.py:67:5: W292 no newline at end of file
+.\analyze_code.py:2:1: F401 'sklearn.feature_extraction.text.TfidfVectorizer' imported but unused
+.\analyze_code.py:12:89: E501 line too long (109 > 88 characters)
+.\analyze_code.py:13:89: E501 line too long (106 > 88 characters)
+.\analyze_code.py:15:89: E501 line too long (103 > 88 characters)
+.\analyze_code.py:18:1: E302 expected 2 blank lines, found 1
+.\analyze_code.py:19:89: E501 line too long (109 > 88 characters)
+.\analyze_code.py:21:1: W293 blank line contains whitespace
+.\analyze_code.py:31:89: E501 line too long (101 > 88 characters)
+.\analyze_code.py:33:1: W293 blank line contains whitespace
+.\analyze_code.py:35:1: W293 blank line contains whitespace
+.\analyze_code.py:38:89: E501 line too long (101 > 88 characters)
+.\analyze_code.py:47:21: E265 block comment should start with '# '
+.\analyze_code.py:56:1: W293 blank line contains whitespace
+.\analyze_code.py:59:1: E302 expected 2 blank lines, found 1
+.\analyze_code.py:64:89: E501 line too long (100 > 88 characters)
+.\analyze_code.py:72:1: E302 expected 2 blank lines, found 1
+.\analyze_code.py:78:1: E305 expected 2 blank lines after class or function definition, found 1
+.\analyze_code.py:81:1: W293 blank line contains whitespace
+.\file1.py:3:5: F841 local variable 'a' is assigned to but never used
+.\file1.py:4:5: F841 local variable 'b' is assigned to but never used
+.\file1.py:5:5: F841 local variable 'c' is assigned to but never used
+.\file1.py:6:5: F841 local variable 'd' is assigned to but never used
+.\file1.py:7:5: F841 local variable 'e' is assigned to but never used
+.\file1.py:8:5: F841 local variable 'f' is assigned to but never used
+.\file1.py:9:5: F841 local variable 'g' is assigned to but never used
+.\file1.py:10:5: F841 local variable 'h' is assigned to but never used
+.\file1.py:11:5: F841 local variable 'i' is assigned to but never used
+.\file1.py:12:5: F841 local variable 'j' is assigned to but never used
+.\file1.py:13:5: F841 local variable 'k' is assigned to but never used
+.\file1.py:14:5: F841 local variable 'l' is assigned to but never used
+.\file1.py:14:5: E741 ambiguous variable name 'l'
+.\file1.py:15:5: F841 local variable 'm' is assigned to but never used
+.\file1.py:16:5: F841 local variable 'n' is assigned to but never used
+.\file1.py:17:5: F841 local variable 'o' is assigned to but never used
+.\file1.py:18:5: F841 local variable 'p' is assigned to but never used
+.\file1.py:19:5: F841 local variable 'q' is assigned to but never used
+.\file1.py:20:5: F841 local variable 'r' is assigned to but never used
+.\file1.py:21:5: F841 local variable 's' is assigned to but never used
+.\file1.py:22:5: F841 local variable 't' is assigned to but never used
+.\file1.py:23:5: F841 local variable 'u' is assigned to but never used
+.\file1.py:24:5: F841 local variable 'v' is assigned to but never used
+.\file1.py:25:5: F841 local variable 'w' is assigned to but never used
+.\file1.py:26:5: F841 local variable 'x' is assigned to but never used
+.\file1.py:27:5: F841 local variable 'y' is assigned to but never used
+.\file1.py:28:5: F841 local variable 'z' is assigned to but never used
+.\file1.py:29:43: W292 no newline at end of file
+.\file2.py:2:17: W291 trailing whitespace
+.\file2.py:5:1: E305 expected 2 blank lines after class or function definition, found 0
+.\file2.py:7:1: E302 expected 2 blank lines, found 1
+.\file2.py:21:21: W292 no newline at end of file
+.\generate_feedback.py:14:1: E305 expected 2 blank lines after class or function definition, found 1
+.\src\firstFile.py:1:1: F401 'os' imported but unused
+.\src\firstFile.py:4:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:21:15: E261 at least two spaces before inline comment
+.\src\firstFile.py:25:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:38:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:39:11: E702 multiple statements on one line (semicolon)
+.\src\firstFile.py:43:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:44:5: F841 local variable 'y' is assigned to but never used
+.\src\firstFile.py:45:5: F841 local variable 'z' is assigned to but never used
+.\src\firstFile.py:49:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:55:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:60:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:66:1: E305 expected 2 blank lines after class or function definition, found 1
+.\src\firstFile.py:69:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:70:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:74:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:75:3: F821 undefined name 'subprocess'
+.\src\firstFile.py:75:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:79:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:82:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:84:1: F811 redefinition of unused 'unused_variable' from line 43
+.\src\firstFile.py:84:1: E305 expected 2 blank lines after class or function definition, found 1
+.\src\firstFile.py:87:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:88:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:91:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:94:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:94:4: E271 multiple spaces after keyword
+.\src\firstFile.py:94:31: E211 whitespace before '('
+.\src\firstFile.py:94:33: E201 whitespace after '('
+.\src\firstFile.py:94:35: E203 whitespace before ':'
+.\src\firstFile.py:95:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:98:3: E111 indentation is not a multiple of 4
+.\src\firstFile.py:100:1: E302 expected 2 blank lines, found 1
+.\src\firstFile.py:100:34: W292 no newline at end of file
+.\static_analysis.py:3:1: E302 expected 2 blank lines, found 1
+.\static_analysis.py:5:89: E501 line too long (99 > 88 characters)
+.\static_analysis.py:10:1: E302 expected 2 blank lines, found 1
+.\static_analysis.py:17:1: E302 expected 2 blank lines, found 1
+.\static_analysis.py:24:1: E305 expected 2 blank lines after class or function definition, found 1
+.\static_analysis.py:25:89: E501 line too long (89 > 88 characters)
+.\static_analysis.py:35:89: E501 line too long (186 > 88 characters)
+.\train_code_smells_model.py:8:1: F401 'os' imported but unused
+.\train_code_smells_model.py:22:89: E501 line too long (115 > 88 characters)
+.\train_code_smells_model.py:34:89: E501 line too long (89 > 88 characters)
+.\train_code_smells_model.py:40:1: E305 expected 2 blank lines after class or function definition, found 1
+.\train_code_smells_model.py:45:89: E501 line too long (99 > 88 characters)
+.\train_code_smells_model.py:49:89: E501 line too long (101 > 88 characters)
+.\train_model.py:11:89: E501 line too long (108 > 88 characters)
+.\train_model.py:14:89: E501 line too long (89 > 88 characters)
+.\train_model.py:15:89: E501 line too long (97 > 88 characters)
+
+Pylint Report:
+************* Module file1
+file1.py:29:0: C0304: Final newline missing (missing-final-newline)
+file1.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+file1.py:2:0: C0116: Missing function or method docstring (missing-function-docstring)
+file1.py:2:0: R0914: Too many local variables (26/15) (too-many-locals)
+file1.py:3:4: W0612: Unused variable 'a' (unused-variable)
+file1.py:4:4: W0612: Unused variable 'b' (unused-variable)
+file1.py:5:4: W0612: Unused variable 'c' (unused-variable)
+file1.py:6:4: W0612: Unused variable 'd' (unused-variable)
+file1.py:7:4: W0612: Unused variable 'e' (unused-variable)
+file1.py:8:4: W0612: Unused variable 'f' (unused-variable)
+file1.py:9:4: W0612: Unused variable 'g' (unused-variable)
+file1.py:10:4: W0612: Unused variable 'h' (unused-variable)
+file1.py:11:4: W0612: Unused variable 'i' (unused-variable)
+file1.py:12:4: W0612: Unused variable 'j' (unused-variable)
+file1.py:13:4: W0612: Unused variable 'k' (unused-variable)
+file1.py:14:4: W0612: Unused variable 'l' (unused-variable)
+file1.py:15:4: W0612: Unused variable 'm' (unused-variable)
+file1.py:16:4: W0612: Unused variable 'n' (unused-variable)
+file1.py:17:4: W0612: Unused variable 'o' (unused-variable)
+file1.py:18:4: W0612: Unused variable 'p' (unused-variable)
+file1.py:19:4: W0612: Unused variable 'q' (unused-variable)
+file1.py:20:4: W0612: Unused variable 'r' (unused-variable)
+file1.py:21:4: W0612: Unused variable 's' (unused-variable)
+file1.py:22:4: W0612: Unused variable 't' (unused-variable)
+file1.py:23:4: W0612: Unused variable 'u' (unused-variable)
+file1.py:24:4: W0612: Unused variable 'v' (unused-variable)
+file1.py:25:4: W0612: Unused variable 'w' (unused-variable)
+file1.py:26:4: W0612: Unused variable 'x' (unused-variable)
+file1.py:27:4: W0612: Unused variable 'y' (unused-variable)
+file1.py:28:4: W0612: Unused variable 'z' (unused-variable)
+************* Module file2
+file2.py:2:16: C0303: Trailing whitespace (trailing-whitespace)
+file2.py:21:0: C0304: Final newline missing (missing-final-newline)
+file2.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+file2.py:1:0: C0116: Missing function or method docstring (missing-function-docstring)
+file2.py:7:0: C0116: Missing function or method docstring (missing-function-docstring)
+file2.py:9:8: R1705: Unnecessary "elif" after "return", remove the leading "el" from "elif" (no-else-return)
+file2.py:16:8: R1705: Unnecessary "elif" after "return", remove the leading "el" from "elif" (no-else-return)
+
+-----------------------------------
+Your code has been rated at 1.78/10
+
+
+Radon Cyclomatic Complexity Report: 
+A: 1-10 (Excelente)
+B: 11-20 (Bueno)
+C: 21-30 (Promedio)
+D: 31-40 (Deficiente)
+E: 41-50 (Pobre)
+F: 50+ (Fallido)
+file1.py
+    F 2:0 long_function_example - A
+file2.py
+    F 7:0 complex_function - B
+    F 1:0 calculate_area - A
+
