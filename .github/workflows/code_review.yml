@@ -25,16 +25,6 @@ jobs:
           python --version
           which python
           pip list
-     
-      # Step 3: Debug Environment
-      - name: Debug Environment
-        run: |
-          echo "Python Location: ${{ env.pythonLocation }}"
-          echo "LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}"
-          python --version
-          which python
-          pip --version
-          pip list
 
       # Step 4: Install dependencies
       - name: Install Dependencies
