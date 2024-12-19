@@ -1,5 +1,4 @@
 # file1.py
-
 def long_function_example():
     a = 10
     b = 20
