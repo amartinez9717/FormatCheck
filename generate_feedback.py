@@ -1,14 +1,15 @@
 def generate_feedback():
     with open('analysis_report.txt', 'r') as f:
-        flake8_feedback = f.read()
+        analysis_feedback = f.read()
 
     with open('pattern_recognition_report.txt', 'r') as f:
         ml_feedback = f.read()
 
-    feedback = f"Static Analysis Feedback:\n{flake8_feedback}\n\nML Pattern Recognition Feedback:\n{ml_feedback}"
-
     with open('feedback_report.txt', 'w') as f:
-        f.write(feedback)
+        f.write("Static Analysis Feedback:\n")
+        f.write(analysis_feedback+"\n")
+        f.write("ML Pattern Recognition Feedback:\n")
+        f.write(ml_feedback+"\n")
 
 if __name__ == "__main__":
     generate_feedback()
