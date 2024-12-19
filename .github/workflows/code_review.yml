@@ -25,10 +25,23 @@ jobs:
           python --version
           which python
           pip list
-
-      - name: Install flake8
+     
+      # Step 3: Debug Environment
+      - name: Debug Environment
         run: |
+          echo "Python Location: ${{ env.pythonLocation }}"
+          echo "LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}"
+          python --version
+          which python
+          pip --version
+          pip list
+
+      # Step 4: Install dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
           pip install flake8
+          pip install -r requirements.txt
 
       # Step 2: Run static analysis
       - name: Run Static Analysis (flake8)
