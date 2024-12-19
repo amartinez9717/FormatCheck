@@ -13,18 +13,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      # Step 1: Install necessary dependencies
       - name: Set up Python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.8'  # Adjust as per your project
+          python-version: '3.8'
 
-      - name: Install dependencies
+      - name: Debug Python Environment
         run: |
-          pip install -r requirements.txt
-          pip install flake8 scikit-learn
+          python --version
+          which python
+          pip list
+
+      - name: Install flake8
+        run: |
+          pip install flake8
 
       # Step 2: Run static analysis
       - name: Run Static Analysis (flake8)
@@ -51,4 +55,3 @@ jobs:
         with:
           name: code-review-feedback
           path: feedback_report.txt  # Adjust based on your output
-
