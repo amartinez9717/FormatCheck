@@ -32,5 +32,5 @@ if __name__ == "__main__":
         report_file.write(flake8_output + "\n")
         report_file.write("Pylint Report:\n")
         report_file.write(pylint_output + "\n")
-        report_file.write("Radon Cyclomatic Complexity Report:\n")
+        report_file.write("Radon Cyclomatic Complexity Report: \nA: 1-10 (Excelente)\nB: 11-20 (Bueno)\nC: 21-30 (Promedio)\nD: 31-40 (Deficiente)\nE: 41-50 (Pobre)\nF: 50+ (Fallido)\n")
         report_file.write(radon_output + "\n")

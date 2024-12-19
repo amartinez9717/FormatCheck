@@ -4,8 +4,6 @@ def calculate_area(radius):
     return area
 print(calculate_area(5))
 
-def pi = 3.14159 
-
 def complex_function(a, b, c):
     if a > b:
         if b > c:
