@@ -1,5 +1,5 @@
 def generate_feedback():
-    with open('flake8_report.txt', 'r') as f:
+    with open('analysis_report.txt', 'r') as f:
         flake8_feedback = f.read()
 
     with open('pattern_recognition_report.txt', 'r') as f:

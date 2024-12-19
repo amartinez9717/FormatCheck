@@ -1,4 +1,4 @@
-name: Code Review
+name: Code Review Assistant - AI
 
 permissions:
   pull-requests: write
@@ -9,7 +9,7 @@ on:
     paths:
       - '**/*.py'  # adjust based on your language (e.g., '*.js' for JS)
 jobs:
-  static-analysis:
+  code-review-assistant:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
